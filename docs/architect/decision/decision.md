@@ -1,3 +1,14 @@
+### 9. Event System for Subsystem Communication
+- **Rationale:** Enables decoupled, scalable communication between engine subsystems (input, ECS, etc.) and supports future extensibility (priorities, async, propagation).
+- **Implications:** Subsystems interact via events, improving modularity and maintainability.
+
+### 10. Centralized Configuration Management
+- **Rationale:** Centralizes engine and game settings for easier management and extensibility.
+- **Implications:** Configuration is loaded and accessed via a unified API; future options (profiles, runtime settings) are supported.
+
+### 11. Demo Scenes and Example Projects
+- **Rationale:** Demonstrates engine capabilities, validates architecture, and helps onboard new developers.
+- **Implications:** Example projects and demo scenes are maintained and updated as features grow.
 ### 8. Input System with Abstract API (pygame backend)
 - **Rationale:** Use a flexible input API with a backend implementation (initially pygame) to support keyboard, mouse, and gamepad input.
 - **Implications:** Input system can be swapped for other solutions (e.g., OS hooks) in the future without changing engine code.

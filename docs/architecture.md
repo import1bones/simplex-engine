@@ -15,10 +15,11 @@ The engine is structured around the following core components:
 - **Resource Manager:** Centralizes asset loading/unloading, supports textures, models, audio, and scripts.
 - **Audio System:** Manages audio playback and integration, supporting flexible sound features.
 - **Input System:** Provides an abstract API for user input (keyboard, mouse, gamepad) with a backend implementation (initially pygame). Allows future replacement with other solutions.
+- **Event System:** Enables decoupled communication between subsystems, supporting extensibility and scalable game logic.
 
 ## Component Interaction
 
-The architecture is designed for loose coupling and high extensibility. Each subsystem communicates via well-defined interfaces, enabling easy integration and replacement. Resource Manager and Audio System are first-class subsystems, supporting asset and sound management for games and media.
+The architecture is designed for loose coupling and high extensibility. Each subsystem communicates via well-defined interfaces and the event system, enabling easy integration and replacement. Resource Manager and Audio System are first-class subsystems, supporting asset and sound management for games and media. The event system allows input, ECS, and other subsystems to interact dynamically.
 
 ## UML Diagram
 
@@ -73,10 +74,13 @@ classDiagram
 ## Advantages
 
 - **Unified Python Stack:** All subsystems use Python, enabling dynamic development and debugging.
+- **Event-Driven Extensibility:** The event system allows for scalable, decoupled subsystem communication and future feature growth.
+- **Robust Error Handling:** Subsystems include error handling and logging for reliability and easier debugging.
+- **Centralized Configuration:** Supports extensible configuration management for engine and game settings.
 - **Rapid Prototyping:** Immediate feedback and hot-reloading for faster iteration.
 - **Extensible:** Easily add or replace components thanks to modular design.
 - **Performance:** Designed to leverage improving hardware for better runtime efficiency.
 
 ## Summary
 
-The simplex-engine architecture prioritizes developer experience, flexibility, and future-proofing. By combining ECS, modern rendering, physics, and scripting in Python, it empowers creators to build complex interactive systems with minimal friction.
+The simplex-engine architecture prioritizes developer experience, flexibility, and future-proofing. By combining ECS, modern rendering, physics, scripting, and an event-driven approach in Python, it empowers creators to build complex interactive systems with minimal friction. Centralized configuration, robust error handling, and demo scenes further support maintainability and onboarding for new developers.

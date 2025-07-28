@@ -14,7 +14,18 @@ class Input(InputInterface):
     def __init__(self, backend=None, event_system=None):
         self.backend = backend
         self.event_system = event_system
+        self._initialized = False
 
+    def _init_pygame(self):
+        """
+        Initialize pygame and its display if not already done.
+        """
+        if not self._initialized:
+            import pygame
+            pygame.init()
+            # Create a hidden display to allow event polling
+            pygame.display.set_mode((1, 1), pygame.HIDDEN)
+            self._initialized = True
     def set_backend(self, backend: str) -> None:
         """
         Set the input backend implementation.
@@ -28,6 +39,7 @@ class Input(InputInterface):
         """
         if self.backend == "pygame":
             try:
+                self._init_pygame()
                 import pygame
                 pygame.event.pump()
                 events = pygame.event.get()

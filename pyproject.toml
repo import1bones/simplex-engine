@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "logging>=0.4.9.6",
     "pybullet>=3.2.7",
     "pyopengl>=3.1.9",
 ]

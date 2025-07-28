@@ -43,10 +43,14 @@ class ECS(ECSInterface):
         self.systems = []
 
     def add_entity(self, entity):
+        if isinstance(entity, str):
+            entity = Entity(entity)
         log(f"Adding entity: {entity.name}")
         self.entities.append(entity)
 
     def add_system(self, system):
+        if isinstance(system, str):
+            system = System(system)
         log(f"Adding system: {system.name}")
         self.systems.append(system)
 

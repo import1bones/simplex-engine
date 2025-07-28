@@ -1,0 +1,22 @@
+# Minimal configuration for simplex-engine demo
+[engine]
+name = "Simplex Demo Engine"
+version = "0.1"
+
+[renderer]
+backend = "OpenGL"
+
+[physics]
+enabled = true
+
+[resource]
+path = "resources/"
+
+[input]
+backend = "default"
+
+[audio]
+enabled = true
+
+[script]
+enabled = true

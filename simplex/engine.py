@@ -15,7 +15,7 @@ from .config import Config
 from .input.input import Input
 
 class Engine:
-    def __init__(self, config_path: str = "config.toml"):
+    def __init__(self, config_path: str = "examples/config.toml"):
         self.config = Config(config_path)
         self.ecs = ECS()
         self.renderer = Renderer()

@@ -6,29 +6,29 @@ The MVP for simplex-engine is the minimal set of features required to build and 
 ## Sorted MVP Task List
 
 ### 1. Core Engine Loop
-- [ ] Implement Engine main loop
-- [ ] Centralize and extend configuration management (document usage)
-- [ ] Integrate unified event system for subsystem communication (support extensibility)
+- [x] Implement Engine main loop
+- [x] Centralize and extend configuration management (document usage)
+- [x] Integrate unified event system for subsystem communication (support extensibility)
 ### 2. ECS (Entity-Component-System)
-- [ ] Implement ECS core (Entity, Component, System management)
+- [x] Implement ECS core (Entity, Component, System management)
 
 ### 3. Input System
-- [ ] Design abstract Input system API
-- [ ] Implement pygame backend for input
-- [ ] Support polling and state retrieval for keyboard, mouse, and gamepad
-- [ ] Integrate input events with ECS and game logic
-- [ ] Document API for future backend replacement
+- [x] Design abstract Input system API
+- [x] Implement pygame backend for input
+- [x] Support polling and state retrieval for keyboard, mouse, and gamepad
+- [x] Integrate input events with ECS and game logic
+- [x] Document API for future backend replacement
 
 ### 4. Renderer
-- [ ] Add camera and viewport management
+- [x] Add camera and viewport management
 
 ### 4. Physics
-- [ ] Integrate pybullet for physics simulation
+- [x] Integrate pybullet for physics simulation
 
-- Input System (abstract API, pygame backend)
+// ...existing code...
 ### 6. Resource Manager
-- [ ] Implement ResourceManager for asset loading (textures, models)
-- [ ] Plan and implement robust error handling for resource management and event flows
+- [x] Implement ResourceManager for asset loading (textures, models)
+- [x] Plan and implement robust error handling for resource management and event flows
 
 ## MVP Analysis
 

@@ -9,12 +9,14 @@ from .physics.physics import Physics
 from .script.script_manager import ScriptManager
 from .resource.resource_manager import ResourceManager
 from .event.event_system import EventSystem
+from .config import Config
 
 
 from .input.input import Input
 
 class Engine:
-    def __init__(self):
+    def __init__(self, config_path: str = "config.toml"):
+        self.config = Config(config_path)
         self.ecs = ECS()
         self.renderer = Renderer()
         self.physics = Physics()
@@ -33,7 +35,9 @@ class Engine:
     def run(self):
         """Main loop for the engine MVP."""
         print("Engine starting...")
-        self.resource_manager.load("example_resource")
+        # Example: use configuration
+        demo_resource = self.config.get("demo_resource", "example_resource")
+        self.resource_manager.load(demo_resource)
         self.ecs.add_entity("Player")
         self.ecs.add_system("MovementSystem")
         self.script_manager.execute()

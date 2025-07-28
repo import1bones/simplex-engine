@@ -8,6 +8,11 @@ from simplex.utils.logger import log
 class EventSystem:
     """
     Basic event system for registering, emitting, and handling events.
+    Extensible for priorities, propagation, async support, and advanced features as engine grows.
+    Example usage:
+        events = EventSystem()
+        events.register('input', handler)
+        events.emit('input', data)
     """
     def __init__(self):
         self._listeners: Dict[str, List[Callable[[Any], None]]] = {}

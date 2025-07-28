@@ -8,4 +8,5 @@ dependencies = [
     "logging>=0.4.9.6",
     "pybullet>=3.2.7",
     "pyopengl>=3.1.9",
+    "toml>=0.10.2",
 ]

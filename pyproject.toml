@@ -1,0 +1,10 @@
+[project]
+name = "simplex-engine"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pybullet>=3.2.7",
+    "pyopengl>=3.1.9",
+]

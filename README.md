@@ -12,10 +12,12 @@ We believe a simplified engine (less code complexity, more functionality) will m
 
 ## Architecture
 
-- Uses ECS (Entity-Component-System) as the developer interface
-- Uses puopengl for rendering and video creation
-- Uses pybullet for the physics system
-- Uses Python for scripting and logic
+
+- Modular subsystems: ECS, Renderer, Physics, ScriptManager, ResourceManager, Audio, Input, EventSystem
+- Event-driven architecture: subsystems communicate via a unified event system
+- Input system: abstract API, pygame backend, handles initialization internally, emits events, backend can be swapped
+- Centralized configuration management via TOML
+- Multi-level logging and robust error handling
 
 ### Advantages
 

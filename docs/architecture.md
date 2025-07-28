@@ -4,18 +4,36 @@
 
 The simplex-engine is a Python-based game engine designed for simplicity, flexibility, and rapid development. It leverages modern hardware capabilities and provides a unified development experience for game developers, video creators, and interactive media designers.
 
+
 ## High-Level Architecture
 
 The engine is structured around the following core components:
 
-- **ECS (Entity-Component-System):** Serves as the primary developer interface, enabling modular and scalable game logic.
-- **puopengl:** Handles rendering and video output, optimized for real-time and cinematic experiences.
-- **pybullet:** Integrates physics simulation for realistic interactions and dynamics.
-- **Python Scripting:** Powers all logic and scripting, allowing dynamic behavior and rapid prototyping.
-- **Resource Manager:** Centralizes asset loading/unloading, supports textures, models, audio, and scripts.
-- **Audio System:** Manages audio playback and integration, supporting flexible sound features.
-- **Input System:** Provides an abstract API for user input (keyboard, mouse, gamepad) with a backend implementation (initially pygame). Allows future replacement with other solutions.
-- **Event System:** Enables decoupled communication between subsystems, supporting extensibility and scalable game logic.
+- **ECS (Entity-Component-System):** Modular game logic, entities, components, and systems. Accepts both objects and string names for flexibility.
+- **Renderer:** Handles graphics output (puopengl backend).
+- **Physics:** Integrates pybullet for simulation.
+- **ScriptManager:** Executes Python scripts, supports hot-reloading.
+- **ResourceManager:** Centralized asset management (textures, models, audio, scripts).
+- **Audio:** First-class subsystem for sound playback and management.
+- **Input System:** Abstract API, currently uses pygame backend. Handles initialization internally, supports polling and event emission. Backend can be swapped for future extensibility.
+- **Event System:** Decoupled communication between subsystems, extensible for priorities and async.
+
+## Design Principles
+- Modularity: Each subsystem is in its own module, with clear interfaces for replacement and extension.
+- Extensibility: Event-driven architecture, pluggable subsystems, and configuration via TOML.
+- Error Handling: Consistent use of logging and exceptions.
+- Configuration: Centralized, extensible, and documented.
+- Logging: Multi-level, centralized, extensible for future needs.
+
+## Input System
+- Initializes pygame and display automatically.
+- Emits events via the event system.
+- Backend can be swapped (future support for OS hooks, etc.).
+- Robust error handling and logging.
+
+## Demo Scene
+- Example entry point showing subsystem interaction and event-driven flow.
+- Loads configuration from examples/config.toml.
 
 ## Component Interaction
 

@@ -1,5 +1,9 @@
 # Input System Architecture Solutions
+## Current Implementation
+- The input system uses pygame as the backend and handles initialization internally. This ensures modularity and reduces setup errors. Backend can be swapped for future extensibility (e.g., OS hooks, custom event loop).
 
+## Trade-Offs
+- Using pygame is simple and cross-platform, but adds a dependency and may be heavier than needed for minimal MVP. Future trade-off: consider lightweight or platform-specific backends if performance or footprint becomes a concern.
 When adding an input system to simplex-engine, here are two main implementation approaches to consider:
 
 ## Solution 1: Use a Python Input Library (e.g., `pygame`)

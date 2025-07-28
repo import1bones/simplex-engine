@@ -13,7 +13,9 @@
 - **Rationale:** Use a flexible input API with a backend implementation (initially pygame) to support keyboard, mouse, and gamepad input.
 - **Implications:** Input system can be swapped for other solutions (e.g., OS hooks) in the future without changing engine code.
 # Architecture Decisions
-
+### 12. Input System Backend Initialization and Extensibility
+- **Rationale:** Input system now handles backend initialization (e.g., pygame) internally, improving modularity and reducing setup errors. Backend can be swapped for future extensibility.
+- **Implications:** Input system is robust, modular, and future-proof. Event emission and error handling are integrated.
 This document records key architecture decisions for simplex-engine to ensure clarity, maintainability, and future extensibility.
 
 ## Decision Log

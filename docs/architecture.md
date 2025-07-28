@@ -14,6 +14,7 @@ The engine is structured around the following core components:
 - **Python Scripting:** Powers all logic and scripting, allowing dynamic behavior and rapid prototyping.
 - **Resource Manager:** Centralizes asset loading/unloading, supports textures, models, audio, and scripts.
 - **Audio System:** Manages audio playback and integration, supporting flexible sound features.
+- **Input System:** Provides an abstract API for user input (keyboard, mouse, gamepad) with a backend implementation (initially pygame). Allows future replacement with other solutions.
 
 ## Component Interaction
 
@@ -32,6 +33,7 @@ classDiagram
         +ScriptManager scriptManager
         +ResourceManager resourceManager
         +Audio audio
+        +Input input
         +run()
     }
     class ECS {
@@ -63,6 +65,7 @@ classDiagram
     Engine --> ScriptManager
     Engine --> ResourceManager
     Engine --> Audio
+    Engine --> Input
     ECS --> Entity
     ECS --> System
 ```

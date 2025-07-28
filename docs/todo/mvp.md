@@ -7,25 +7,23 @@ The MVP for simplex-engine is the minimal set of features required to build and 
 
 ### 1. Core Engine Loop
 - [ ] Implement Engine main loop
-- [ ] Basic configuration and resource management
-
 ### 2. ECS (Entity-Component-System)
 - [ ] Implement ECS core (Entity, Component, System management)
-- [ ] Create base classes for Entity, Component, System
 
-### 3. Renderer
-- [ ] Implement Renderer using puopengl
-- [ ] Render basic primitives (e.g., cube, sphere)
+### 3. Input System
+- [ ] Design abstract Input system API
+- [ ] Implement pygame backend for input
+- [ ] Support polling and state retrieval for keyboard, mouse, and gamepad
+- [ ] Integrate input events with ECS and game logic
+- [ ] Document API for future backend replacement
+
+### 4. Renderer
 - [ ] Add camera and viewport management
 
 ### 4. Physics
 - [ ] Integrate pybullet for physics simulation
-- [ ] Support basic collision detection
 
-### 5. Scripting
-- [ ] Implement ScriptManager for Python scripting
-- [ ] Provide API for game logic
-
+- Input System (abstract API, pygame backend)
 ### 6. Resource Manager
 - [ ] Implement ResourceManager for asset loading (textures, models)
 
@@ -33,6 +31,7 @@ The MVP for simplex-engine is the minimal set of features required to build and 
 
 The minimal set of MVP features includes:
 - Engine main loop
+        +Input input
 - ECS core (Entity, Component, System)
 - Renderer (basic primitives, camera)
 - Physics (basic simulation)
@@ -58,6 +57,7 @@ classDiagram
         +System[] systems
         +addEntity()
         +addSystem()
+    Engine --> Input
     }
     class Renderer {
         +render()

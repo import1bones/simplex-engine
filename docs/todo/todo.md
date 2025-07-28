@@ -1,3 +1,9 @@
+## Input System
+- [ ] Design abstract Input system API
+- [ ] Implement pygame backend for input
+- [ ] Support polling and state retrieval for keyboard, mouse, and gamepad
+- [ ] Integrate input events with ECS and game logic
+- [ ] Document API for future backend replacement
 # simplex-engine TODO List
 
 ## Core Architecture

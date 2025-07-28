@@ -1,3 +1,6 @@
+### 8. Input System with Abstract API (pygame backend)
+- **Rationale:** Use a flexible input API with a backend implementation (initially pygame) to support keyboard, mouse, and gamepad input.
+- **Implications:** Input system can be swapped for other solutions (e.g., OS hooks) in the future without changing engine code.
 # Architecture Decisions
 
 This document records key architecture decisions for simplex-engine to ensure clarity, maintainability, and future extensibility.

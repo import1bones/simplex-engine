@@ -4,13 +4,16 @@ Minimal Input system implementation for MVP.
 from .interface import InputInterface
 from simplex.utils.logger import log
 
+
 class Input(InputInterface):
     """
     Input system for simplex-engine MVP.
     Supports flexible backend (e.g., pygame) and error handling.
+    Can emit events via an event system.
     """
-    def __init__(self, backend=None):
+    def __init__(self, backend=None, event_system=None):
         self.backend = backend
+        self.event_system = event_system
 
     def set_backend(self, backend: str) -> None:
         """
@@ -21,7 +24,7 @@ class Input(InputInterface):
 
     def poll(self) -> None:
         """
-        Poll input events from the backend. Handles errors and logs at INFO level.
+        Poll input events from the backend. Emits events via event system.
         """
         if self.backend == "pygame":
             try:
@@ -29,6 +32,10 @@ class Input(InputInterface):
                 pygame.event.pump()
                 events = pygame.event.get()
                 log(f"Polled {len(events)} pygame events.", level="INFO")
+                # Emit events for each pygame event
+                if self.event_system:
+                    for event in events:
+                        self.event_system.emit('input', event)
             except ImportError:
                 log("pygame not installed.", level="ERROR")
             except Exception as e:

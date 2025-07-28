@@ -8,19 +8,23 @@
 - Organize code into logical modules and packages reflecting architecture.
 
 ## Design Style
-- Use interfaces (abstract base classes) for all subsystems to enable easy replacement and extension.
-- Favor composition over inheritance for game objects and systems.
-- Keep subsystems loosely coupled; communicate via well-defined interfaces.
-- Design for testability: write small, focused classes and functions.
-- Document all public APIs and architectural decisions.
-- Implement a logging system with multiple levels (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL) to support troubleshooting and root cause analysis. The logging system should be simple for MVP but extensible for future needs (e.g., filtering, output to files, integration with external tools).
+Use interfaces (abstract base classes) for all subsystems to enable easy replacement and extension.
+Favor composition over inheritance for game objects and systems.
+Keep subsystems loosely coupled; communicate via well-defined interfaces.
+Design for testability: write small, focused classes and functions.
+Document all public APIs and architectural decisions.
+Implement a logging system with multiple levels (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL) to support troubleshooting and root cause analysis. The logging system should be simple for MVP but extensible for future needs (e.g., filtering, output to files, integration with external tools).
+Integrate a unified event system for communication between subsystems (e.g., input events triggering ECS actions).
+Plan for robust error handling, especially in resource management and input systems. Use exceptions and error reporting consistently.
+Centralize configuration management and make it extensible for future options (e.g., user profiles, runtime settings).
 
 ## Achieving Maintainability
-- Write unit tests for all core logic and interfaces.
-- Use clear separation of concerns: ECS, Renderer, Physics, Scripting, Resource Manager, Audio.
-- Avoid circular dependencies between modules.
-- Refactor code regularly to improve readability and structure.
-- Maintain up-to-date documentation for code and architecture.
+Write unit tests for all core logic and interfaces.
+Use clear separation of concerns: ECS, Renderer, Physics, Scripting, Resource Manager, Audio.
+Avoid circular dependencies between modules.
+Refactor code regularly to improve readability and structure.
+Maintain up-to-date documentation for code and architecture.
+Provide example projects and demo scenes to help new users and validate architecture decisions.
 
 ## Achieving Flexibility
 - Make all subsystems pluggable via interfaces; allow users to swap implementations.

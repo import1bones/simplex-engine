@@ -13,6 +13,7 @@
 - Keep subsystems loosely coupled; communicate via well-defined interfaces.
 - Design for testability: write small, focused classes and functions.
 - Document all public APIs and architectural decisions.
+- Implement a logging system with multiple levels (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL) to support troubleshooting and root cause analysis. The logging system should be simple for MVP but extensible for future needs (e.g., filtering, output to files, integration with external tools).
 
 ## Achieving Maintainability
 - Write unit tests for all core logic and interfaces.

@@ -12,10 +12,12 @@ The engine is structured around the following core components:
 - **puopengl:** Handles rendering and video output, optimized for real-time and cinematic experiences.
 - **pybullet:** Integrates physics simulation for realistic interactions and dynamics.
 - **Python Scripting:** Powers all logic and scripting, allowing dynamic behavior and rapid prototyping.
+- **Resource Manager:** Centralizes asset loading/unloading, supports textures, models, audio, and scripts.
+- **Audio System:** Manages audio playback and integration, supporting flexible sound features.
 
 ## Component Interaction
 
-The architecture is designed for loose coupling and high extensibility. Each subsystem communicates via well-defined interfaces, enabling easy integration and replacement.
+The architecture is designed for loose coupling and high extensibility. Each subsystem communicates via well-defined interfaces, enabling easy integration and replacement. Resource Manager and Audio System are first-class subsystems, supporting asset and sound management for games and media.
 
 ## UML Diagram
 
@@ -28,6 +30,8 @@ classDiagram
         +Renderer renderer
         +Physics physics
         +ScriptManager scriptManager
+        +ResourceManager resourceManager
+        +Audio audio
         +run()
     }
     class ECS {
@@ -45,10 +49,20 @@ classDiagram
     class ScriptManager {
         +execute()
     }
+    class ResourceManager {
+        +load()
+        +unload()
+    }
+    class Audio {
+        +play()
+        +stop()
+    }
     Engine --> ECS
     Engine --> Renderer
     Engine --> Physics
     Engine --> ScriptManager
+    Engine --> ResourceManager
+    Engine --> Audio
     ECS --> Entity
     ECS --> System
 ```

@@ -25,20 +25,20 @@
 ### Input & Event System
 - [x] Add support for gamepad and touch input (see docs/input_touch_gamepad.md)
 - [x] Implement event priorities and propagation (bubbling/capturing) (see docs/event_priorities_propagation.md)
-- [ ] Document event system extensibility and advanced usage
+- [x] Document event system extensibility and advanced usage (see docs/event_system_advanced.md)
 
 ### Engine Core & Flexibility
 - [x] Add configuration hot-reloading (live config changes) (see docs/config_hot_reload.md)
 
 ### Renderer Enhancements
-- [ ] Add support for lighting and basic post-processing effects
-- [ ] Implement material/shader system with user extensibility
-- [ ] Expand scene graph for hierarchical transforms and instancing
+- [x] Add support for lighting and basic post-processing effects (see docs/lighting_postprocessing.md)
+- [x] Implement material/shader system with user extensibility (see docs/material_shader_system.md)
+- [x] Expand scene graph for hierarchical transforms and instancing (see docs/scene_graph_hierarchical_instancing.md)
 
 ### Physics System Expansion
 - [ ] Integrate advanced physics features (rigid body, soft body, collision response)
-- [ ] Expose physics events to ECS and scripting
-- [ ] Add physics-based demo scene and documentation
+- [x] Expose physics events to ECS and scripting (see docs/physics_events_ecs_scripting.md)
+- [x] Add physics-based demo scene and documentation (see docs/physics_demo_scene.md)
 
 ### Testing & Documentation
 - [ ] Expand integration and edge-case tests for all subsystems

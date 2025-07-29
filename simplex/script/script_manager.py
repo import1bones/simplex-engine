@@ -6,6 +6,15 @@ from .interface import ScriptManagerInterface
 from simplex.utils.logger import log
 
 class ScriptManager(ScriptManagerInterface):
+    import traceback
+
+    def __init__(self, script_dir: str = "examples/mvp/scripts"):
+        self.script_dir = script_dir
+        self._script_mtimes = {}
+        self._plugins = []
+        # Event hooks: on_load, on_reload, on_error
+        self._event_hooks = {"on_load": [], "on_reload": [], "on_error": []}
+        self._recent_errors = []  # Store recent script errors for debugging
     import os
     import importlib.util
     import time
@@ -40,7 +49,9 @@ class ScriptManager(ScriptManagerInterface):
                     for f in self.os.listdir(self.script_dir)
                     if f.endswith('.py')]
         except Exception as e:
-            log(f"Script discovery error: {e}", level="ERROR")
+            tb = self.traceback.format_exc()
+            log(f"Script discovery error: {e}\n{tb}", level="ERROR")
+            self._recent_errors.append(("discovery", None, tb))
             return []
 
     def hot_reload(self):
@@ -60,13 +71,17 @@ class ScriptManager(ScriptManagerInterface):
                         try:
                             plugin(module)
                         except Exception as e:
-                            log(f"Plugin error: {e}", level="ERROR")
+                            tb = self.traceback.format_exc()
+                            log(f"Plugin error: {e}\n{tb}", level="ERROR")
+                            self._recent_errors.append(("plugin", script_path, tb))
                     event_type = "on_reload" if last_mtime > 0 else "on_load"
                     self._emit(event_type, script_path, module)
                     log(f"Hot-reloaded and executed: {script_path}", level="INFO")
             except Exception as e:
+                tb = self.traceback.format_exc()
                 self._emit("on_error", script_path, e)
-                log(f"Hot-reload error in {script_path}: {e}", level="ERROR")
+                log(f"Hot-reload error in {script_path}: {e}\n{tb}", level="ERROR")
+                self._recent_errors.append(("hot_reload", script_path, tb))
     """
     Script manager for simplex-engine MVP.
     Handles script execution and error management.
@@ -86,9 +101,17 @@ class ScriptManager(ScriptManagerInterface):
                     try:
                         plugin(module)
                     except Exception as e:
-                        log(f"Plugin error: {e}", level="ERROR")
+                        tb = self.traceback.format_exc()
+                        log(f"Plugin error: {e}\n{tb}", level="ERROR")
+                        self._recent_errors.append(("plugin", script_path, tb))
                 self._emit("on_load", script_path, module)
                 log(f"Executed: {script_path}", level="INFO")
             except Exception as e:
+                tb = self.traceback.format_exc()
                 self._emit("on_error", script_path, e)
-                log(f"Script execution error in {script_path}: {e}", level="ERROR")
+                log(f"Script execution error in {script_path}: {e}\n{tb}", level="ERROR")
+                self._recent_errors.append(("execute", script_path, tb))
+
+    def get_recent_errors(self, limit=10):
+        """Return a list of recent script errors for debugging."""
+        return self._recent_errors[-limit:]

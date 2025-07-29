@@ -1,3 +1,5 @@
+# Demo resource for MVP-3 hot-reloading
+demo_resource = "examples/mvp/demo_shader.glsl"
 # Minimal configuration for simplex-engine demo
 [engine]
 name = "Simplex Demo Engine"

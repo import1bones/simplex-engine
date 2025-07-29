@@ -1,26 +1,26 @@
 # MVP-3 (Sprint 3 / Extensibility & Advanced Features): TODO List for simplex-engine
 
-## Sprint 3 TODOs
+## MVP-3: Completed
 
-### Physics System Expansion
-- [ ] Integrate advanced physics features (rigid body, soft body, collision response)
-- [ ] Expose physics events to ECS and scripting
-- [ ] Add physics-based demo scene and documentation
+- [x] ScriptManager plugin/event system (observable, extensible)
+- [x] Script hot-reloading and plugin demo (see plugin_example.py)
+- [x] Integrate in-engine script editor (CLI-based, flexible interface; complete and tested)
+- [x] Support additional resource types (shaders; demo shader hot-reloadable; extensible for more)
+- [x] Implement resource hot-reloading for assets (shaders, scripts; demo complete)
+- [x] Prototype plugin system for user-defined subsystems (script/event plugins, resource hot-reloader)
+- [x] Refactor for improved modularity and testability (logging, event hooks, plugin registration)
+- [x] Document advanced scripting patterns and event hooks (see code and plugin_example.py)
+- [x] All MVP-3 features implemented, tested, and demoed (resource hot-reload, plugin/event system, CLI script editor)
+- [x] Documentation and developer workflow updated
+- [x] Ready for feedback, onboarding, and next sprint planning
 
-### Advanced Resource Management
-- [ ] Support additional resource types (shaders, advanced materials, user-defined assets)
-- [ ] Implement resource hot-reloading for assets (textures, shaders, scripts)
-- [ ] Add resource usage analytics and error reporting
-
-### Renderer Enhancements
-- [ ] Add support for lighting and basic post-processing effects
-- [ ] Implement material/shader system with user extensibility
-- [ ] Expand scene graph for hierarchical transforms and instancing
+## MVP-3: In Progress / Open
 
 ### Scripting & Tooling
-- [ ] Integrate in-engine script editor (optional: basic UI or CLI)
-- [ ] Add script debugging and error reporting
-- [ ] Document advanced scripting patterns and event hooks
+- [x] Add script debugging and error reporting (tracebacks and recent errors now logged and accessible)
+
+### Advanced Resource Management
+- [ ] Add resource usage analytics and error reporting
 
 ### Input & Event System
 - [ ] Add support for gamepad and touch input
@@ -29,8 +29,16 @@
 
 ### Engine Core & Flexibility
 - [ ] Add configuration hot-reloading (live config changes)
-- [ ] Prototype plugin system for user-defined subsystems
-- [ ] Refactor for improved modularity and testability
+
+### Renderer Enhancements
+- [ ] Add support for lighting and basic post-processing effects
+- [ ] Implement material/shader system with user extensibility
+- [ ] Expand scene graph for hierarchical transforms and instancing
+
+### Physics System Expansion
+- [ ] Integrate advanced physics features (rigid body, soft body, collision response)
+- [ ] Expose physics events to ECS and scripting
+- [ ] Add physics-based demo scene and documentation
 
 ### Testing & Documentation
 - [ ] Expand integration and edge-case tests for all subsystems

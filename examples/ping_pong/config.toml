@@ -1,0 +1,13 @@
+# Ping-Pong Game Settings (MVP-Sample-4)
+
+[paddle]
+speed = 8.0
+width = 0.2
+height = 1.2
+
+[ball]
+speed = 7.0
+radius = 0.15
+
+[game]
+score_to_win = 5

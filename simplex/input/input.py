@@ -37,7 +37,7 @@ class Input(InputInterface):
         """
         Poll input events from the backend. Emits events via event system.
         Supports 'pygame' (default) and 'custom' (lightweight placeholder) backends.
-        Extend this method to add platform-specific or advanced backends.
+        Now supports gamepad and touch input (via pygame FINGER events).
         """
         if self.backend == "pygame":
             try:
@@ -49,7 +49,21 @@ class Input(InputInterface):
                 # Emit events for each pygame event
                 if self.event_system:
                     for event in events:
-                        self.event_system.emit('input', event)
+                        # Touch support: emit 'touch' for FINGER events
+                        if event.type in (getattr(pygame, 'FINGERDOWN', None), getattr(pygame, 'FINGERUP', None), getattr(pygame, 'FINGERMOTION', None)):
+                            touch_data = {
+                                "type": "touch",
+                                "event": event.type,
+                                "x": getattr(event, 'x', None),
+                                "y": getattr(event, 'y', None),
+                                "dx": getattr(event, 'dx', None),
+                                "dy": getattr(event, 'dy', None),
+                                "finger_id": getattr(event, 'finger_id', None),
+                                "touch_id": getattr(event, 'touch_id', None),
+                            }
+                            self.event_system.emit('touch', touch_data)
+                        else:
+                            self.event_system.emit('input', event)
 
                 # Gamepad support: detect and emit gamepad events
                 pygame.joystick.init()

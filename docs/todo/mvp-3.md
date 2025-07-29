@@ -23,7 +23,7 @@
 - [x] Add resource usage analytics and error reporting (see docs/resource_analytics.md)
 
 ### Input & Event System
-- [ ] Add support for gamepad and touch input
+- [x] Add support for gamepad and touch input (see docs/input_touch_gamepad.md)
 - [ ] Implement event priorities and propagation (bubbling/capturing)
 - [ ] Document event system extensibility and advanced usage
 

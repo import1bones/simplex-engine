@@ -11,3 +11,11 @@ class AudioInterface(ABC):
     @abstractmethod
     def stop(self, sound_id: str):
         pass
+
+    @abstractmethod
+    def load(self, sound_path: str):
+        pass
+
+    @abstractmethod
+    def unload(self, sound_id: str):
+        pass

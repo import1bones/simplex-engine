@@ -36,6 +36,8 @@ class Input(InputInterface):
     def poll(self) -> None:
         """
         Poll input events from the backend. Emits events via event system.
+        Supports 'pygame' (default) and 'custom' (lightweight placeholder) backends.
+        Extend this method to add platform-specific or advanced backends.
         """
         if self.backend == "pygame":
             try:
@@ -52,12 +54,19 @@ class Input(InputInterface):
                 log("pygame not installed.", level="ERROR")
             except Exception as e:
                 log(f"Input polling error: {e}", level="ERROR")
+        elif self.backend == "custom":
+            # Lightweight backend: just log and emit a fake event for demonstration
+            log("Polling input events with custom backend (demo only)...", level="INFO")
+            if self.event_system:
+                fake_event = {"type": "custom_input", "info": "demo event"}
+                self.event_system.emit('input', fake_event)
         else:
-            log("Polling input events with custom backend...", level="INFO")
+            log(f"Unknown input backend: {self.backend}", level="WARNING")
 
     def get_state(self) -> dict:
         """
         Return current input state. Handles errors and logs at INFO level.
+        Extend this method for new backends.
         """
         if self.backend == "pygame":
             try:
@@ -72,6 +81,9 @@ class Input(InputInterface):
             except Exception as e:
                 log(f"Input state error: {e}", level="ERROR")
                 return {}
+        elif self.backend == "custom":
+            log("Getting input state with custom backend (demo only)...", level="INFO")
+            return {"custom": True}
         else:
-            log("Getting input state with custom backend...", level="INFO")
+            log(f"Unknown input backend: {self.backend}", level="WARNING")
             return {}

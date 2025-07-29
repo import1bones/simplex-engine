@@ -50,6 +50,23 @@ class Input(InputInterface):
                 if self.event_system:
                     for event in events:
                         self.event_system.emit('input', event)
+
+                # Gamepad support: detect and emit gamepad events
+                pygame.joystick.init()
+                num_joysticks = pygame.joystick.get_count()
+                for jid in range(num_joysticks):
+                    joystick = pygame.joystick.Joystick(jid)
+                    joystick.init()
+                    gamepad_state = {
+                        "id": jid,
+                        "name": joystick.get_name(),
+                        "axes": [joystick.get_axis(i) for i in range(joystick.get_numaxes())],
+                        "buttons": [joystick.get_button(i) for i in range(joystick.get_numbuttons())],
+                        "hats": [joystick.get_hat(i) for i in range(joystick.get_numhats())],
+                    }
+                    log(f"Gamepad detected: {gamepad_state['name']} (id {jid})", level="INFO")
+                    if self.event_system:
+                        self.event_system.emit('gamepad', gamepad_state)
             except ImportError:
                 log("pygame not installed.", level="ERROR")
             except Exception as e:

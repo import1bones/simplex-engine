@@ -22,6 +22,7 @@ class ResourceManager(ResourceManagerInterface):
                 log(f"Resource not hot-reloadable: {resource_path}", level="WARNING")
         except Exception as e:
             log(f"Resource reload error: {e}", level="ERROR")
+            self._error_log.append(("reload", resource_path, str(e)))
     """
     Resource manager for simplex-engine MVP.
     Handles asset loading/unloading and error management.
@@ -29,6 +30,9 @@ class ResourceManager(ResourceManagerInterface):
     def __init__(self):
         self._cache = {}
         self._ref_counts = {}
+        self._load_count = 0
+        self._unload_count = 0
+        self._error_log = []  # (action, resource_path, error)
 
     def load(self, resource_path: str) -> None:
         """
@@ -48,9 +52,11 @@ class ResourceManager(ResourceManagerInterface):
                 resource = f"Loaded({resource_path})"  # Replace with actual resource object
             self._cache[resource_path] = resource
             self._ref_counts[resource_path] = 1
+            self._load_count += 1
             log(f"Loaded resource: {resource_path}", level="INFO")
         except Exception as e:
             log(f"Resource loading error: {e}", level="ERROR")
+            self._error_log.append(("load", resource_path, str(e)))
 
     def unload(self, resource_path: str) -> None:
         """
@@ -63,8 +69,19 @@ class ResourceManager(ResourceManagerInterface):
                 if self._ref_counts[resource_path] <= 0:
                     del self._cache[resource_path]
                     del self._ref_counts[resource_path]
+                    self._unload_count += 1
                     log(f"Unloaded resource: {resource_path}", level="INFO")
             else:
                 log(f"Resource not loaded: {resource_path}", level="WARNING")
         except Exception as e:
             log(f"Resource unloading error: {e}", level="ERROR")
+            self._error_log.append(("unload", resource_path, str(e)))
+    def get_usage_analytics(self):
+        """Return resource usage statistics and recent errors."""
+        return {
+            "load_count": self._load_count,
+            "unload_count": self._unload_count,
+            "cache_size": len(self._cache),
+            "ref_counts": dict(self._ref_counts),
+            "recent_errors": list(self._error_log[-10:]),
+        }

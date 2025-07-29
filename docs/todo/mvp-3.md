@@ -28,7 +28,7 @@
 - [ ] Document event system extensibility and advanced usage
 
 ### Engine Core & Flexibility
-- [ ] Add configuration hot-reloading (live config changes)
+- [x] Add configuration hot-reloading (live config changes) (see docs/config_hot_reload.md)
 
 ### Renderer Enhancements
 - [ ] Add support for lighting and basic post-processing effects

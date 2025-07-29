@@ -45,6 +45,18 @@ class Engine:
         except Exception as e:
             from simplex.utils.logger import log
             log(f"Failed to initialize ResourceHotReloader: {e}", level="ERROR")
+        # Config hot-reloader for MVP-3
+        try:
+            from simplex.config.config_hot_reloader import ConfigHotReloader
+            self.config_hot_reloader = ConfigHotReloader(
+                self.config,
+                config_path,
+                event_system=self.events if hasattr(self, 'events') else None,
+                poll_interval=1.0
+            )
+        except Exception as e:
+            from simplex.utils.logger import log
+            log(f"Failed to initialize ConfigHotReloader: {e}", level="ERROR")
         self.audio = Audio()
         self.events = EventSystem()
         self.input = Input(backend="pygame", event_system=self.events)
@@ -81,6 +93,10 @@ class Engine:
         # Resource hot-reload demo (edit demo resource or sound to test)
         if hasattr(self, "resource_hot_reloader"):
             self.resource_hot_reloader.run_once()
+
+        # Config hot-reload demo (edit config file to test)
+        if hasattr(self, "config_hot_reloader"):
+            self.config_hot_reloader.run_once()
 
         # Poll input and handle events (would be in a loop in a real engine)
         self.input.poll()

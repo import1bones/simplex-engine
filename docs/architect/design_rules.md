@@ -8,6 +8,13 @@
 - Organize code into logical modules and packages reflecting architecture.
 
 
+
+## Observability
+
+- Ensure all subsystems and resource types provide clear, consistent, and actionable logging for key operations, errors, and state changes.
+- Use the engine's logging system for all status, error, and debug messages to support troubleshooting, monitoring, and system transparency.
+- Design for runtime observability: make it easy to trace, audit, and understand system behavior through logs and events.
+
 ## Design Style
 
 - Use interfaces (abstract base classes, via Python's `abc` module) for all subsystems to enable easy replacement, extension, and contract enforcement.

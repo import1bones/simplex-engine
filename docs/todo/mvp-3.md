@@ -42,8 +42,8 @@
 
 ### Testing & Documentation
 - [x] Expand integration and edge-case tests for all subsystems (see docs/testing_guide.md)
-- [ ] Update and expand onboarding, architecture, and API docs
-- [ ] Provide advanced example projects and usage guides
+- [x] Update and expand onboarding, architecture, and API docs (see docs/onboarding_architecture.md, docs/architecture.md, docs/api_reference.md)
+- [x] Provide advanced example projects and usage guides (see docs/full_integration_demo.md, docs/advanced_example_platformer.md)
 
 ---
 Sprint 3 TODOs focus on extensibility, advanced features, and developer experience, preparing the engine for real-world projects and community contributions.

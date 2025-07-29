@@ -6,6 +6,9 @@ from .interface import ResourceManagerInterface
 from simplex.utils.logger import log
 
 class ResourceManager(ResourceManagerInterface):
+    def reload(self, resource_path: str) -> None:
+        """Alias for reload_resource for hot-reloader compatibility."""
+        self.reload_resource(resource_path)
     def reload_resource(self, resource_path: str) -> None:
         """
         Reload a resource if it supports hot-reloading.

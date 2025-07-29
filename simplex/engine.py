@@ -31,6 +31,20 @@ class Engine:
             from simplex.utils.logger import log
             log(f"Failed to register script plugin: {e}", level="ERROR")
         self.resource_manager = ResourceManager()
+        # Resource hot-reloader for MVP-3
+        try:
+            from simplex.resource.resource_hot_reloader import ResourceHotReloader
+            # Watch demo resource and demo sound for hot-reload
+            demo_resource = self.config.get("demo_resource", "example_resource")
+            demo_sound = self.config.get("audio", {}).get("demo_sound", "examples/mvp/demo_sound.wav")
+            self.resource_hot_reloader = ResourceHotReloader(
+                self.resource_manager,
+                watch_paths=[demo_resource, demo_sound],
+                poll_interval=1.0
+            )
+        except Exception as e:
+            from simplex.utils.logger import log
+            log(f"Failed to initialize ResourceHotReloader: {e}", level="ERROR")
         self.audio = Audio()
         self.events = EventSystem()
         self.input = Input(backend="pygame", event_system=self.events)
@@ -63,6 +77,10 @@ class Engine:
 
         # Hot-reload demo script (edit examples/mvp/demo_script.py to test)
         self.script_manager.hot_reload()
+
+        # Resource hot-reload demo (edit demo resource or sound to test)
+        if hasattr(self, "resource_hot_reloader"):
+            self.resource_hot_reloader.run_once()
 
         # Poll input and handle events (would be in a loop in a real engine)
         self.input.poll()

@@ -1,4 +1,6 @@
+
 import unittest
+from unittest.mock import patch, MagicMock
 from simplex.audio.audio import Audio
 
 class DummyResourceManager:
@@ -8,9 +10,11 @@ class DummyResourceManager:
         self.unloaded = path
 
 class TestAudio(unittest.TestCase):
-    def test_load_and_play(self):
+    @patch('pygame.mixer.Sound')
+    @patch('pygame.mixer.init')
+    def test_load_and_play(self, mock_init, mock_sound):
+        mock_sound.return_value = MagicMock(play=MagicMock(), stop=MagicMock())
         audio = Audio(resource_manager=DummyResourceManager())
-        # This will not actually play sound, but will test logic paths
         audio.load('test.wav')
         self.assertIn('test.wav', audio.sounds)
         audio.play('test.wav')

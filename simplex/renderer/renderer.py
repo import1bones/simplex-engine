@@ -32,7 +32,7 @@ class Renderer(RendererInterface):
         self.scene_root = SceneNode("root")
 
     def add_primitive(self, primitive, material=None, parent=None):
-        node = SceneNode(primitive, material=material)
+        node = SceneNode(name=primitive, primitive=primitive, material=material)
         if parent is None:
             self.scene_root.add_child(node)
         else:

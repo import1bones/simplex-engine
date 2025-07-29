@@ -36,12 +36,12 @@
 - [x] Expand scene graph for hierarchical transforms and instancing (see docs/scene_graph_hierarchical_instancing.md)
 
 ### Physics System Expansion
-- [ ] Integrate advanced physics features (rigid body, soft body, collision response)
+- [x] Integrate advanced physics features (rigid body, soft body, collision response) (see docs/advanced_physics_features.md)
 - [x] Expose physics events to ECS and scripting (see docs/physics_events_ecs_scripting.md)
 - [x] Add physics-based demo scene and documentation (see docs/physics_demo_scene.md)
 
 ### Testing & Documentation
-- [ ] Expand integration and edge-case tests for all subsystems
+- [x] Expand integration and edge-case tests for all subsystems (see docs/testing_guide.md)
 - [ ] Update and expand onboarding, architecture, and API docs
 - [ ] Provide advanced example projects and usage guides
 

@@ -20,6 +20,20 @@ class EventSystem:
         1. Capture: all listeners with capture=True, in priority order
         2. Bubble: all listeners with capture=False, in priority order
     - Extensible for async, filtering, or custom event objects.
+
+    Example:
+        events = EventSystem()
+        def on_input(data):
+            print('Input event:', data)
+        def on_capture(data):
+            print('Capture event:', data)
+        def stopper(data):
+            print('Stopper called')
+            return False
+        events.register('input', on_input, priority=5)
+        events.register('input', on_capture, priority=10, capture=True)
+        events.register('input', stopper, priority=1)
+        events.emit('input', {'key': 'A'})
     """
     """
     Basic event system for registering, emitting, and handling events.

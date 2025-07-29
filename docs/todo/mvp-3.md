@@ -24,7 +24,7 @@
 
 ### Input & Event System
 - [x] Add support for gamepad and touch input (see docs/input_touch_gamepad.md)
-- [ ] Implement event priorities and propagation (bubbling/capturing)
+- [x] Implement event priorities and propagation (bubbling/capturing) (see docs/event_priorities_propagation.md)
 - [ ] Document event system extensibility and advanced usage
 
 ### Engine Core & Flexibility

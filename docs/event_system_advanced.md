@@ -29,10 +29,18 @@ events.register('input', bubble_listener, priority=5)
 events.emit('input', {'key': 'A'})
 ```
 
-## Notes
-- Capture listeners run before bubble listeners.
-- Listeners with higher priority run first within each phase.
-- Returning `False` from any listener stops further propagation.
+
+## Extending the EventSystem
+- Add async/await support by overriding `emit`.
+- Add event filtering or transformation by wrapping listeners.
+- Use custom event objects for richer data and propagation control.
+- Integrate with plugins or scripting by exposing `register` and `emit`.
+
+## Best Practices
+- Use priorities to control event order.
+- Use capture for pre-processing or global hooks.
+- Always handle exceptions in listeners.
+- Return `False` to stop propagation when needed.
 
 ---
-For more, see the source code in `simplex/event/event_system.py`.
+For more, see the source code in `simplex/event/event_system.py` and in-code docstrings for advanced usage and patterns.

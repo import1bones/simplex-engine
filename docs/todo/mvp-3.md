@@ -20,7 +20,7 @@
 - [x] Add script debugging and error reporting (tracebacks and recent errors now logged and accessible)
 
 ### Advanced Resource Management
-- [ ] Add resource usage analytics and error reporting
+- [x] Add resource usage analytics and error reporting (see docs/resource_analytics.md)
 
 ### Input & Event System
 - [ ] Add support for gamepad and touch input

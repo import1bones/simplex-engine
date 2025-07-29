@@ -22,6 +22,14 @@ class Engine:
         self.renderer = Renderer()
         self.physics = Physics()
         self.script_manager = ScriptManager()
+        # Register plugin for script events
+        try:
+            from examples.mvp.scripts.plugin_example import script_event_logger
+            self.script_manager.on("on_load", script_event_logger)
+            self.script_manager.on("on_reload", script_event_logger)
+        except Exception as e:
+            from simplex.utils.logger import log
+            log(f"Failed to register script plugin: {e}", level="ERROR")
         self.resource_manager = ResourceManager()
         self.audio = Audio()
         self.events = EventSystem()
@@ -54,7 +62,7 @@ class Engine:
             self.audio.play(sound_path)
 
         # Hot-reload demo script (edit examples/mvp/demo_script.py to test)
-        self.script_manager.hot_reload("examples/mvp/demo_script.py")
+        self.script_manager.hot_reload()
 
         # Poll input and handle events (would be in a loop in a real engine)
         self.input.poll()

@@ -38,26 +38,99 @@ engine.renderer.add_primitive('sphere', material='ball_mat', parent=None, transf
 def handle_input(event):
     # Accept both pygame-style and CLI events
     if hasattr(event, 'type') and (event.type == 'KEYDOWN' or (hasattr(event, 'type') and event.type == 'KEYDOWN')):
-        # Accept both string and pygame constants for key
-        if getattr(event, 'key', None) in ('UP', 'K_UP'):
-            player_paddle.apply_impulse((0, 8, 0))
-        elif getattr(event, 'key', None) in ('DOWN', 'K_DOWN'):
-            player_paddle.apply_impulse((0, -8, 0))
+        key = getattr(event, 'key', None)
+        # Clamp paddle movement within bounds 0 to 600
+        PADDLE_SPEED = 18  # Increased speed for more responsive play
+        if key in ('UP', 'K_UP', 'w'):
+            x, y, z = player_paddle.position
+            new_y = min(y + PADDLE_SPEED, 600)
+            player_paddle.position = (x, new_y, z)
+        elif key in ('DOWN', 'K_DOWN', 's'):
+            x, y, z = player_paddle.position
+            new_y = max(y - PADDLE_SPEED, 0)
+            player_paddle.position = (x, new_y, z)
 engine.events.register('input', handle_input)
 
-# AI paddle (simple follow)
-def ai_follow(event):
+
+# AI paddle and ball/physics/collision/scoring logic in engine events
+def ai_and_physics_update(event):
+    # AI paddle follows ball
     if ball.position[1] > ai_paddle.position[1]:
         ai_paddle.apply_impulse((0, 6, 0))
     elif ball.position[1] < ai_paddle.position[1]:
         ai_paddle.apply_impulse((0, -6, 0))
-engine.events.register('physics_update', ai_follow)
 
-# Collision: bounce and scoring
+    # Ball movement (physics step)
+    bx, by, bz = ball.position
+    vx, vy, vz = ball.velocity
+    bx += vx
+    by += vy
+
+    # Collision with top/bottom
+    if by <= 0 or by >= 600:
+        vy = -vy
+        by = max(0, min(by, 600))
+        # Emit collision event for wall
+        wall_event = type('Event', (), {})()
+        wall_event.type = 'collision'
+        wall_event.object = 'wall'
+        engine.events.emit('physics_collision', wall_event)
+
+    # Collision with paddles
+    hit_paddle = False
+    # Player paddle (left)
+    if bx <= player_paddle.position[0] + 10 and abs(by - player_paddle.position[1]) < 60:
+        vx = abs(vx)
+        hit_paddle = 'player'
+    # AI paddle (right)
+    elif bx >= ai_paddle.position[0] - 10 and abs(by - ai_paddle.position[1]) < 60:
+        vx = -abs(vx)
+        hit_paddle = 'ai'
+    if hit_paddle:
+        paddle_event = type('Event', (), {})()
+        paddle_event.type = 'collision'
+        paddle_event.object = hit_paddle
+        engine.events.emit('physics_collision', paddle_event)
+
+    # Score: ball passes left or right
+    scored = None
+    if bx < 0:
+        score['ai'] += 1
+        bx, by = 400, 300
+        vx, vy = -6, 4
+        scored = 'ai'
+    elif bx > 800:
+        score['player'] += 1
+        bx, by = 400, 300
+        vx, vy = 6, 4
+        scored = 'player'
+    if scored:
+        score_event = type('Event', (), {})()
+        score_event.type = 'score'
+        score_event.object = scored
+        engine.events.emit('score', score_event)
+
+    ball.position = (bx, by, bz)
+    ball.velocity = (vx, vy, vz)
+
+engine.events.register('physics_update', ai_and_physics_update)
+
+# Collision: bounce and scoring (for logging/demo)
 def on_collision(event):
-    # Bounce logic and scoring (stub)
-    pass
+    if hasattr(event, 'object'):
+        if event.object == 'wall':
+            print('[Event] Ball bounced off wall!')
+        elif event.object == 'player':
+            print('[Event] Ball hit player paddle!')
+        elif event.object == 'ai':
+            print('[Event] Ball hit AI paddle!')
 engine.events.register('physics_collision', on_collision)
+
+# Score event (for logging/demo)
+def on_score(event):
+    if hasattr(event, 'object'):
+        print(f'[Event] {event.object.capitalize()} scores!')
+engine.events.register('score', on_score)
 
 # Score and GUI overlay (stub)
 score = {'player': 0, 'ai': 0}
@@ -94,7 +167,7 @@ import os
 import termios
 import tty
 import select
-TICKS = 100  # Number of simulation steps
+
 
 def render_ascii(player_y, ai_y, ball_x, ball_y, width=80, height=24):
     # Map game coordinates to ASCII grid
@@ -128,58 +201,57 @@ fd = sys.stdin.fileno()
 old_settings = termios.tcgetattr(fd)
 tty.setcbreak(fd)
 print("Controls: 'w' = up, 's' = down. Press Ctrl+C to quit.")
+import threading
 try:
-    for tick in range(TICKS):
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print(f"Tick {tick+1} | Player {score['player']} : {score['ai']} AI\n")
+    tick = 0
+    state = {'running': True, 'last_key': None, 'w_down': False, 's_down': False}
+    FRAME_TIME = 1.0 / 60  # 60 FPS
+    INPUT_POLL_INTERVAL = 0.005  # 5ms
 
-        # Poll input and emit events via simplex-engine
-        key = get_key()
-        if key == 'w':
+    def input_thread():
+        while state['running']:
+            key = get_key()
+            if key:
+                # Track key state for continuous movement
+                if key == 'w':
+                    state['w_down'] = True
+                elif key == 's':
+                    state['s_down'] = True
+                elif key == 'q':
+                    state['running'] = False
+                # Key up simulation (if user presses other key, release previous)
+                if key not in ('w', 's'):
+                    state['w_down'] = False
+                    state['s_down'] = False
+            else:
+                # No key pressed, release both
+                state['w_down'] = False
+                state['s_down'] = False
+            time.sleep(INPUT_POLL_INTERVAL)
+
+    t = threading.Thread(target=input_thread, daemon=True)
+    t.start()
+
+    while state['running']:
+        tick += 1
+        frame_start = time.time()
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(f"Tick {tick} | Player {score['player']} : {score['ai']} AI\n")
+
+        # Handle input (continuous movement)
+        if state['w_down']:
             event = type('Event', (), {})()
             event.type = 'KEYDOWN'
             event.key = 'UP'
             engine.events.emit('input', event)
-        elif key == 's':
+        if state['s_down']:
             event = type('Event', (), {})()
             event.type = 'KEYDOWN'
             event.key = 'DOWN'
             engine.events.emit('input', event)
 
-        # Let engine update physics and AI
+        # Let engine update physics, AI, ball, collision, and scoring
         engine.events.emit('physics_update', None)
-
-        # Ball movement (simulate physics step)
-        bx, by, bz = ball.position
-        vx, vy, vz = ball.velocity
-        bx += vx
-        by += vy
-
-        # Collision with top/bottom
-        if by <= 0 or by >= 600:
-            vy = -vy
-            by = max(0, min(by, 600))
-
-        # Collision with paddles
-        # Player paddle (left)
-        if bx <= player_paddle.position[0] + 10 and abs(by - player_paddle.position[1]) < 60:
-            vx = abs(vx)
-        # AI paddle (right)
-        elif bx >= ai_paddle.position[0] - 10 and abs(by - ai_paddle.position[1]) < 60:
-            vx = -abs(vx)
-
-        # Score: ball passes left or right
-        if bx < 0:
-            score['ai'] += 1
-            bx, by = 400, 300
-            vx, vy = -6, 4
-        elif bx > 800:
-            score['player'] += 1
-            bx, by = 400, 300
-            vx, vy = 6, 4
-
-        ball.position = (bx, by, bz)
-        ball.velocity = (vx, vy, vz)
 
         # ASCII render
         print(render_ascii(player_paddle.position[1], ai_paddle.position[1], ball.position[0], ball.position[1]))
@@ -194,7 +266,12 @@ try:
         elif score['ai'] >= 5:
             print('AI wins!')
             break
-        time.sleep(0.08)
+
+        # Maintain frame rate
+        elapsed = time.time() - frame_start
+        if elapsed < FRAME_TIME:
+            time.sleep(FRAME_TIME - elapsed)
 finally:
+    state['running'] = False
     termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 print("Simulation complete.")

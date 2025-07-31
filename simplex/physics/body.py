@@ -9,6 +9,17 @@ class RigidBody:
         self.mass = mass
         self.position = position
         self.velocity = velocity
+    def apply_impulse(self, impulse):
+        # For static paddles (mass=0), move position directly
+        if self.mass == 0:
+            x, y, z = self.position
+            dx, dy, dz = impulse
+            self.position = (x + dx, y + dy, z + dz)
+        else:
+            # For dynamic bodies, add to velocity
+            vx, vy, vz = self.velocity
+            dx, dy, dz = impulse
+            self.velocity = (vx + dx, vy + dy, vz + dz)
     def __repr__(self):
         return f"<RigidBody {self.name} pos={self.position} vel={self.velocity}>"
 

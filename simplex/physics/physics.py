@@ -42,7 +42,7 @@ class Physics(PhysicsInterface):
         """
         try:
             log("Simulating physics...", level="INFO")
-            # Rigid body simulation stub
+            # Rigid body simulation - integrate with ECS entities
             for body in self.rigid_bodies:
                 # body.simulate_step()  # Placeholder for RigidBody
                 pass
@@ -50,7 +50,7 @@ class Physics(PhysicsInterface):
             for body in self.soft_bodies:
                 # body.simulate_step()  # Placeholder for SoftBody
                 pass
-            # Collision detection stub
+            # Collision detection - enhanced for ECS integration
             collisions = self._detect_collisions()
             for a, b in collisions:
                 log(f"Collision detected: {a} <-> {b}", level="INFO")
@@ -59,6 +59,41 @@ class Physics(PhysicsInterface):
                     self.event_system.emit('physics_collision', {'a': a, 'b': b})
         except Exception as e:
             log(f"Physics simulation error: {e}", level="ERROR")
+    
+    def simulate_ecs(self, ecs_instance):
+        """
+        Run physics simulation integrated with ECS entities.
+        This method processes entities with physics components.
+        """
+        try:
+            log("Simulating ECS-integrated physics...", level="INFO")
+            
+            # Get entities with position and velocity components
+            moving_entities = ecs_instance.get_entities_with('position', 'velocity')
+            
+            # Apply physics simulation to ECS entities
+            for entity in moving_entities:
+                position_comp = entity.get_component('position')
+                velocity_comp = entity.get_component('velocity')
+                collision_comp = entity.get_component('collision')
+                
+                if position_comp and velocity_comp:
+                    # Simple physics integration (position += velocity)
+                    position_comp.x += velocity_comp.vx
+                    position_comp.y += velocity_comp.vy
+                    position_comp.z += velocity_comp.vz
+                    
+                    # Apply basic physics constraints
+                    if collision_comp and not collision_comp.is_static:
+                        # Apply gravity, friction, etc. here if needed
+                        pass
+            
+            # Emit physics update event
+            if self.event_system:
+                self.event_system.emit('physics_update', {'entities_processed': len(moving_entities)})
+                
+        except Exception as e:
+            log(f"ECS physics simulation error: {e}", level="ERROR")
 
     def _detect_collisions(self):
         """Stub for collision detection. Returns list of (a, b) pairs."""

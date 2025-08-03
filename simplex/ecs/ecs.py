@@ -59,3 +59,18 @@ class ECS(ECSInterface):
         for system in self.systems:
             log(f"Running system: {system.name}")
             system.update(self.entities)
+    
+    def get_entities_with(self, *component_names):
+        """Get entities that have all specified components."""
+        result = []
+        for entity in self.entities:
+            if all(entity.get_component(name) for name in component_names):
+                result.append(entity)
+        return result
+    
+    def get_entity(self, name):
+        """Get entity by name."""
+        for entity in self.entities:
+            if entity.name == name:
+                return entity
+        return None

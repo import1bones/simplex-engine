@@ -26,13 +26,18 @@ engine = Engine(config_path="examples/ping_pong/config.toml")
 
 # Replace stub renderer with actual GUI renderer
 engine.renderer = SimpleRenderer(width=800, height=600)
+# Connect renderer to engine event system for input forwarding
+engine.renderer.set_engine_events(engine.events)
 
 # Create ECS systems and register them
+movement_system = MovementSystem(event_system=engine.events, bounds=(800, 600))
 input_system = InputSystem(event_system=engine.events)
 collision_system = CollisionSystem(event_system=engine.events, bounds=(800, 600))
 scoring_system = ScoringSystem(event_system=engine.events, bounds=(800, 600))
 
+# Add systems in the correct order: input -> movement -> collision -> scoring
 engine.ecs.add_system(input_system)
+engine.ecs.add_system(movement_system)
 engine.ecs.add_system(collision_system)
 engine.ecs.add_system(scoring_system)
 
@@ -126,31 +131,12 @@ def on_score(event):
 engine.events.register('physics_collision', on_collision)
 engine.events.register('score', on_score)
 
-# Enhanced input handling for pygame
-def handle_pygame_input():
-    """Convert pygame input to engine input events."""
-    import pygame
-    
-    keys = pygame.key.get_pressed()
-    
-    # Create input events for pressed keys
-    if keys[pygame.K_UP] or keys[pygame.K_w]:
-        event = type('Event', (), {})()
-        event.type = 'KEYDOWN'
-        event.key = 'UP'
-        engine.events.emit('input', event)
-    
-    if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-        event = type('Event', (), {})()
-        event.type = 'KEYDOWN'
-        event.key = 'DOWN'
-        engine.events.emit('input', event)
-
 # Game loop
 def game_loop():
-    """Main GUI game loop with full ECS integration."""
+    """Main GUI game loop with full ECS integration and debug features."""
     print("🏓 Starting Simplex Engine Ping-Pong!")
     print("Controls: UP/DOWN arrows or W/S keys")
+    print("Debug Controls: F1=Debug, F2=Pause, F3=Step, ESC=Quit")
     print("First to 5 points wins!")
     print("Close window to quit")
     
@@ -161,31 +147,37 @@ def game_loop():
         while running:
             frame_count += 1
             
-            # Handle pygame-specific input
-            handle_pygame_input()
+            # Initialize renderer on first frame
+            if frame_count == 1:
+                engine.renderer.initialize()
             
-            # Update ECS systems (core game logic)
-            engine.ecs.update()
-            
-            # Integrate physics with ECS
-            if hasattr(engine.physics, 'simulate_ecs'):
-                # Use ECS-integrated physics (already handled by ECS systems)
-                pass
-            
-            # Render frame with actual GUI
-            engine.renderer.render()
-            
-            # Check win condition
-            if frame_count % 60 == 0:  # Check every second
-                player_score = scoring_system.score['player']
-                ai_score = scoring_system.score['ai']
+            # Check if systems should update (respects pause state)
+            if engine.renderer.should_update_systems():
+                # Update ECS systems (core game logic)
+                engine.ecs.update()
                 
-                if player_score >= 5:
-                    print(f"\n🏆 PLAYER WINS! Final Score: {player_score}-{ai_score}")
-                    break
-                elif ai_score >= 5:
-                    print(f"\n🤖 AI WINS! Final Score: {player_score}-{ai_score}")
-                    break
+                # Integrate physics with ECS
+                if hasattr(engine.physics, 'simulate_ecs'):
+                    # Use ECS-integrated physics (already handled by ECS systems)
+                    pass
+                
+                # Check win condition (only when not paused)
+                if frame_count % 60 == 0:  # Check every second
+                    player_score = scoring_system.score['player']
+                    ai_score = scoring_system.score['ai']
+                    
+                    # Update renderer with current scores
+                    engine.renderer.update_score(player_score, ai_score)
+                    
+                    if player_score >= 5:
+                        print(f"\n🏆 PLAYER WINS! Final Score: {player_score}-{ai_score}")
+                        break
+                    elif ai_score >= 5:
+                        print(f"\n🤖 AI WINS! Final Score: {player_score}-{ai_score}")
+                        break
+            
+            # Always render frame (shows pause overlay when paused)
+            engine.renderer.render()
             
             # Frame rate control (handled by renderer)
             time.sleep(0.001)

@@ -10,15 +10,17 @@ from simplex.utils.logger import log
 class MovementSystem(System):
     """System that applies velocity to position components."""
     
-    def __init__(self, event_system=None):
+    def __init__(self, event_system=None, bounds=(800, 600)):
         super().__init__('movement')
         self.event_system = event_system
+        self.bounds_width, self.bounds_height = bounds
     
     def update(self, entities):
         """Update positions based on velocities."""
         for entity in entities:
             position_comp = entity.get_component('position')
             velocity_comp = entity.get_component('velocity')
+            collision_comp = entity.get_component('collision')
             
             if position_comp and velocity_comp:
                 # Apply velocity to position
@@ -26,7 +28,18 @@ class MovementSystem(System):
                 position_comp.y += velocity_comp.vy
                 position_comp.z += velocity_comp.vz
                 
-                log(f"MovementSystem: Updated {entity.name} position to {position_comp.position}", level="DEBUG")
+                # Boundary checking for paddles (entities with collision but not ball)
+                if collision_comp and 'ball' not in entity.name.lower():
+                    half_height = collision_comp.height / 2
+                    # Keep paddles within bounds
+                    if position_comp.y - half_height < 0:
+                        position_comp.y = half_height
+                        velocity_comp.vy = 0
+                    elif position_comp.y + half_height > self.bounds_height:
+                        position_comp.y = self.bounds_height - half_height  
+                        velocity_comp.vy = 0
+                
+                log(f"MovementSystem: Updated {entity.name} position to ({position_comp.x:.1f}, {position_comp.y:.1f})", level="DEBUG")
 
 
 class CollisionSystem(System):
@@ -64,17 +77,33 @@ class CollisionSystem(System):
         if not all([position, velocity, collision]):
             return
         
-        # Top/bottom boundaries
-        if position.y <= 0 or position.y >= self.bounds_height:
-            velocity.vy = -velocity.vy
-            position.y = max(0, min(position.y, self.bounds_height))
-            
-            if self.event_system:
-                self.event_system.emit('physics_collision', {
-                    'entity': entity.name,
-                    'type': 'boundary',
-                    'side': 'top' if position.y >= self.bounds_height else 'bottom'
-                })
+        # Get entity dimensions
+        half_width = collision.width / 2
+        half_height = collision.height / 2
+        
+        # Top/bottom boundaries with proper positioning
+        if position.y - half_height <= 0:
+            if velocity.vy < 0:  # Only reverse if moving towards boundary
+                velocity.vy = -velocity.vy
+                position.y = half_height  # Position just inside boundary
+                
+                if self.event_system:
+                    self.event_system.emit('physics_collision', {
+                        'entity': entity.name,
+                        'type': 'boundary',
+                        'side': 'top'
+                    })
+        elif position.y + half_height >= self.bounds_height:
+            if velocity.vy > 0:  # Only reverse if moving towards boundary
+                velocity.vy = -velocity.vy
+                position.y = self.bounds_height - half_height  # Position just inside boundary
+                
+                if self.event_system:
+                    self.event_system.emit('physics_collision', {
+                        'entity': entity.name,
+                        'type': 'boundary',
+                        'side': 'bottom'
+                    })
     
     def _check_entity_collision(self, entity_a, entity_b):
         """Check if two entities are colliding."""
@@ -117,35 +146,41 @@ class InputSystem(System):
     def _handle_input_event(self, event):
         """Handle input events and store state."""
         if hasattr(event, 'type') and hasattr(event, 'key'):
+            log(f"InputSystem: Received input event - {event.type} {event.key}", level="INFO")
             if event.type == 'KEYDOWN':
                 self.input_state[event.key] = True
+                log(f"InputSystem: Key {event.key} pressed, state: {self.input_state}", level="INFO")
             elif event.type == 'KEYUP':
                 self.input_state[event.key] = False
+                log(f"InputSystem: Key {event.key} released, state: {self.input_state}", level="INFO")
     
     def update(self, entities):
         """Apply input to entities with input components."""
         for entity in entities:
             input_comp = entity.get_component('input')
-            position_comp = entity.get_component('position')
+            velocity_comp = entity.get_component('velocity')
             
-            if input_comp and position_comp:
+            if input_comp and velocity_comp:
                 if input_comp.input_type == 'player':
-                    self._handle_player_input(entity, position_comp, input_comp)
+                    self._handle_player_input(entity, velocity_comp, input_comp)
                 elif input_comp.input_type == 'ai':
-                    self._handle_ai_input(entity, position_comp, input_comp, entities)
+                    self._handle_ai_input(entity, velocity_comp, input_comp, entities)
     
-    def _handle_player_input(self, entity, position_comp, input_comp):
+    def _handle_player_input(self, entity, velocity_comp, input_comp):
         """Handle player input for movement."""
         speed = input_comp.speed
         
-        if self.input_state.get('UP') or self.input_state.get('w'):
-            new_y = min(position_comp.y + speed, 600)
-            position_comp.y = new_y
-        elif self.input_state.get('DOWN') or self.input_state.get('s'):
-            new_y = max(position_comp.y - speed, 0)
-            position_comp.y = new_y
+        # Reset vertical velocity first
+        velocity_comp.vy = 0
+        
+        if self.input_state.get('UP'):
+            velocity_comp.vy = -speed  # Negative Y is up in many coordinate systems
+            log(f"InputSystem: Moving {entity.name} UP with velocity {velocity_comp.vy}", level="INFO")
+        elif self.input_state.get('DOWN'):
+            velocity_comp.vy = speed   # Positive Y is down
+            log(f"InputSystem: Moving {entity.name} DOWN with velocity {velocity_comp.vy}", level="INFO")
     
-    def _handle_ai_input(self, entity, position_comp, input_comp, all_entities):
+    def _handle_ai_input(self, entity, velocity_comp, input_comp, all_entities):
         """Handle AI movement logic."""
         # Find ball entity
         ball_entity = None
@@ -154,14 +189,31 @@ class InputSystem(System):
                 ball_entity = e
                 break
         
+        # Reset AI velocity
+        velocity_comp.vy = 0
+        
         if ball_entity:
             ball_pos = ball_entity.get_component('position')
-            if ball_pos:
-                speed = input_comp.speed * 0.8  # AI slightly slower
-                if ball_pos.y > position_comp.y:
-                    position_comp.y = min(position_comp.y + speed, 600)
-                elif ball_pos.y < position_comp.y:
-                    position_comp.y = max(position_comp.y - speed, 0)
+            ball_vel = ball_entity.get_component('velocity')
+            ai_pos = entity.get_component('position')
+            
+            if ball_pos and ball_vel and ai_pos:
+                speed = input_comp.speed * 0.9  # AI slightly slower than player
+                
+                # Only track ball if it's moving towards AI (positive X velocity)
+                if ball_vel.vx > 0:
+                    target_y = ball_pos.y
+                else:
+                    # When ball moving away, return to center
+                    target_y = 300  # Center of 600px height
+                
+                # Move towards target with some deadzone to prevent jittering
+                y_diff = target_y - ai_pos.y
+                if abs(y_diff) > 15:  # Deadzone
+                    if y_diff > 0:
+                        velocity_comp.vy = speed
+                    else:
+                        velocity_comp.vy = -speed
 
 
 class ScoringSystem(System):

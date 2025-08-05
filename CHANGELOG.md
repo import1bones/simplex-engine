@@ -1,6 +1,32 @@
 # Changelog
 
-All notable changes to the Simplex Engine project are documented in this file.
+## [v0.0.1] - 2025-08-05
+
+### Added
+- Initial release of Simplex Engine
+- Entity-Component-System (ECS) core
+- Event system integrated with ECS
+- Input system (keyboard, mouse, gamepad, backend abstraction)
+- Renderer (pygame backend, scene graph, primitives, camera)
+- Physics (basic collision, planned pybullet integration)
+- Scripting (ScriptManager, hot-reload, event hooks)
+- Resource manager (asset loading, caching, reference counting)
+- Audio system (playback, resource integration)
+- Engine main loop, configuration, logging, debugging
+- Modular subsystem design
+- Example game and demo scenes
+- Comprehensive documentation (getting started, core concepts, systems, examples, API, advanced, development)
+
+### Changed
+- Documentation reorganized and outdated docs removed
+- TODO list updated for roadmap
+
+### Roadmap
+- UI system for developer and video creator tools (planned)
+- Advanced physics and rendering features
+- In-game editor and visual tools
+- Multiplayer/networking support
+- More examples and tutorials
 
 ## [Latest] - 2025-08-03
 

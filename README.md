@@ -48,6 +48,28 @@ PYTHONPATH=/path/to/simplex-engine python3 examples/ping_pong/main_gui.py
 
 - **W/S Keys**: Move player paddle up/down
 - **UP/DOWN Arrow Keys**: Alternative paddle controls
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Getting Started](./docs/getting-started/)** - Installation, first project, and tutorials
+- **[Core Concepts](./docs/core-concepts/)** - Architecture, ECS, events, and systems
+- **[Examples & Tutorials](./docs/examples/)** - Complete games and step-by-step guides
+- **[API Reference](./docs/api/)** - Complete API documentation
+- **[Advanced Topics](./docs/advanced/)** - Performance, networking, and expert techniques
+- **[Development Guide](./docs/development/)** - Contributing and extending the engine
+
+### Quick Navigation
+
+| I want to... | Go to... |
+|---------------|----------|
+| **Learn the basics** | [Getting Started Guide](./docs/getting-started/) |
+| **Build my first game** | [Ping Pong Tutorial](./docs/examples/ping-pong.md) |
+| **Understand ECS** | [Core Concepts](./docs/core-concepts/) |
+| **Find API details** | [API Reference](./docs/api/) |
+| **Optimize performance** | [Advanced Topics](./docs/advanced/) |
+| **Contribute code** | [Development Guide](./docs/development/) |
 - **F1-F4**: Debug functions (when available)
 - **ESC**: Exit game
 

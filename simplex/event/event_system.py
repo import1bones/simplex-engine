@@ -87,3 +87,8 @@ class EventSystem:
                         return
                 except Exception as e:
                     log(f"Error in event listener for {event_type}: {e}", level="ERROR")
+    
+    def shutdown(self) -> None:
+        """Clean shutdown of event system."""
+        self._listeners.clear()
+        log("EventSystem shutdown", level="INFO")

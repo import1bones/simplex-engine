@@ -91,10 +91,12 @@ class System:
 
 class ECS(ECSInterface):
     """Enhanced ECS core implementation with proper system management."""
-    def __init__(self):
+    def __init__(self, event_system=None):
+        self.event_system = event_system
         self.entities: List[Entity] = []
         self.systems: List[System] = []
         self._entity_lookup: Dict[str, Entity] = {}
+        log("ECS created", level="INFO")
 
     def add_entity(self, entity) -> None:
         """Add an entity to the ECS."""
@@ -138,6 +140,15 @@ class ECS(ECSInterface):
                 system.update(self.entities)
             except Exception as e:
                 log(f"Error in system {system.name}: {e}", level="ERROR")
+                if self.event_system:
+                    self.event_system.emit('system_error', {'system': system.name, 'error': str(e)})
+    
+    def shutdown(self):
+        """Clean shutdown of ECS."""
+        self.systems.clear()
+        self.entities.clear()
+        self._entity_lookup.clear()
+        log("ECS shutdown", level="INFO")
     
     def get_entities_with(self, *component_names: str) -> List[Entity]:
         """Get entities that have all specified components."""
@@ -160,6 +171,11 @@ class ECS(ECSInterface):
             if system.name == name:
                 return system
         return None
+    
+    def shutdown(self) -> None:
+        """Clean shutdown of ECS."""
+        self.clear()
+        log("ECS shutdown", level="INFO")
         
     def __repr__(self):
         return f"ECS(entities={len(self.entities)}, systems={len(self.systems)})"

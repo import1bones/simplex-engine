@@ -71,16 +71,79 @@ class BlurEffect:
 
 class Renderer(RendererInterface):
     """
-    Renderer system for simplex-engine MVP-2.
+    Renderer system for simplex-engine with proper dependency injection.
     Handles rendering, advanced primitives, materials, and scene graph.
     """
-    def __init__(self):
+    def __init__(self, event_system=None, resource_manager=None):
         from .material import Material, Shader
+        
+        self.event_system = event_system
+        self.resource_manager = resource_manager
+        self._initialized = False
+        
+        # Core rendering components
         self.scene_root = SceneNode("root")
         self.lights = []  # List of light sources
         self.post_effects = []  # List of post-processing effects
         self.materials = {}  # name -> Material
         self.shaders = {}   # name -> Shader
+        
+        # Rendering state
+        self.config = {}
+        self.backend = None
+        
+        log("Renderer created", level="INFO")
+    
+    def initialize(self, config=None):
+        """Initialize renderer with configuration."""
+        self.config = config or {}
+        
+        # Initialize rendering backend based on config
+        backend_type = self.config.get("backend", "debug")
+        
+        if backend_type == "pygame":
+            self._initialize_pygame_backend()
+        elif backend_type == "opengl":
+            self._initialize_opengl_backend()
+        else:
+            # Default debug backend
+            self._initialize_debug_backend()
+        
+        self._initialized = True
+        log(f"Renderer initialized with {backend_type} backend", level="INFO")
+    
+    def _initialize_pygame_backend(self):
+        """Initialize pygame rendering backend."""
+        try:
+            import pygame
+            pygame.init()
+            
+            width = self.config.get("width", 800)
+            height = self.config.get("height", 600)
+            
+            self.screen = pygame.display.set_mode((width, height))
+            pygame.display.set_caption(self.config.get("title", "Simplex Engine"))
+            
+            self.backend = "pygame"
+            log("Pygame backend initialized", level="INFO")
+        except ImportError:
+            log("Pygame not available, falling back to debug backend", level="WARNING")
+            self._initialize_debug_backend()
+    
+    def _initialize_opengl_backend(self):
+        """Initialize OpenGL rendering backend."""
+        try:
+            # Placeholder for OpenGL initialization
+            log("OpenGL backend not yet implemented, using debug backend", level="WARNING")
+            self._initialize_debug_backend()
+        except ImportError:
+            log("OpenGL not available, falling back to debug backend", level="WARNING")
+            self._initialize_debug_backend()
+    
+    def _initialize_debug_backend(self):
+        """Initialize debug rendering backend (console output)."""
+        self.backend = "debug"
+        log("Debug backend initialized", level="INFO")
 
     def register_shader(self, shader):
         self.shaders[shader.name] = shader
@@ -116,23 +179,86 @@ class Renderer(RendererInterface):
         Render the current scene graph with lighting and post-processing effects.
         Handles errors gracefully and logs at INFO level.
         """
+        if not self._initialized:
+            log("Renderer not initialized, skipping render", level="WARNING")
+            return
+            
         try:
-            def render_node(node, global_transform):
-                if node.primitive:
-                    log(f"Rendering primitive: {node.primitive} with material: {node.material} (instances: {node.instance_count}) transform: {global_transform}", level="INFO")
-                    # Lighting: apply all lights to primitive (stub)
-                    for light in self.lights:
-                        if getattr(light, 'type', None) == 'directional':
-                            log(f"Applying directional light {light.direction} to {node.primitive}", level="DEBUG")
-                        elif getattr(light, 'type', None) == 'point':
-                            log(f"Applying point light {light.position} to {node.primitive}", level="DEBUG")
-                        elif getattr(light, 'type', None) == 'ambient':
-                            log(f"Applying ambient light to {node.primitive}", level="DEBUG")
-            self.scene_root.traverse(render_node)
-            log("Rendering scene with scene graph and camera.", level="INFO")
-            # Post-processing: apply all post effects (stub)
-            for effect in self.post_effects:
-                log(f"Applying post-processing effect: {effect}", level="INFO")
-            # Future: integrate with pyopengl or other graphics libraries
+            if self.backend == "pygame":
+                self._render_pygame()
+            elif self.backend == "opengl":
+                self._render_opengl()
+            else:
+                self._render_debug()
+                
         except Exception as e:
             log(f"Renderer error: {e}", level="ERROR")
+            if self.event_system:
+                self.event_system.emit('system_error', {'system': 'Renderer', 'error': str(e)})
+    
+    def _render_pygame(self):
+        """Render using pygame backend."""
+        import pygame
+        
+        # Clear screen
+        self.screen.fill((0, 0, 0))  # Black background
+        
+        # Render scene graph
+        def render_node(node, global_transform):
+            if node.primitive and hasattr(node, 'position'):
+                # Simple primitive rendering for pygame
+                color = (255, 255, 255)  # White default
+                if node.material and hasattr(node.material, 'color'):
+                    color = node.material.color
+                    
+                # Draw primitive based on type
+                if node.primitive == 'rectangle':
+                    pygame.draw.rect(self.screen, color, 
+                                   (node.position.x, node.position.y, node.width, node.height))
+                elif node.primitive == 'circle':
+                    pygame.draw.circle(self.screen, color, 
+                                     (int(node.position.x), int(node.position.y)), node.radius)
+        
+        self.scene_root.traverse(render_node)
+        
+        # Update display
+        pygame.display.flip()
+        log("Pygame frame rendered", level="DEBUG")
+    
+    def _render_opengl(self):
+        """Render using OpenGL backend."""
+        # Placeholder for OpenGL rendering
+        log("OpenGL rendering not implemented", level="DEBUG")
+    
+    def _render_debug(self):
+        """Render using debug backend."""
+        def render_node(node, global_transform):
+            if node.primitive:
+                log(f"Rendering primitive: {node.primitive} with material: {node.material} (instances: {node.instance_count}) transform: {global_transform}", level="INFO")
+                # Lighting: apply all lights to primitive (stub)
+                for light in self.lights:
+                    if getattr(light, 'type', None) == 'directional':
+                        log(f"Applying directional light {light.direction} to {node.primitive}", level="DEBUG")
+                    elif getattr(light, 'type', None) == 'point':
+                        log(f"Applying point light {light.position} to {node.primitive}", level="DEBUG")
+                    elif getattr(light, 'type', None) == 'ambient':
+                        log(f"Applying ambient light to {node.primitive}", level="DEBUG")
+        
+        self.scene_root.traverse(render_node)
+        log("Rendering scene with scene graph and camera.", level="INFO")
+        
+        # Post-processing: apply all post effects (stub)
+        for effect in self.post_effects:
+            log(f"Applying post-processing effect: {effect}", level="INFO")
+    
+    def shutdown(self):
+        """Clean shutdown of renderer."""
+        if self.backend == "pygame":
+            try:
+                import pygame
+                pygame.quit()
+            except:
+                pass
+        
+        self._initialized = False
+        log("Renderer shutdown", level="INFO")

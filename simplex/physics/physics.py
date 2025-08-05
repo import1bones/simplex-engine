@@ -7,7 +7,7 @@ from simplex.utils.logger import log
 
 class Physics(PhysicsInterface):
     """
-    Physics system for simplex-engine MVP.
+    Physics system for simplex-engine with proper dependency injection.
     Handles physics simulation and integrates with external engines (e.g., pybullet).
 
     Advanced Features:
@@ -17,11 +17,53 @@ class Physics(PhysicsInterface):
     - Emits physics events (collision, trigger, etc.)
     - Extensible for custom physics objects and integration
     """
-    def __init__(self, event_system=None):
+    def __init__(self, event_system=None, ecs=None):
         from .body import RigidBody, SoftBody
+        
+        self.event_system = event_system
+        self.ecs = ecs  # Reference to ECS for entity-based physics
+        self._initialized = False
+        
+        # Physics world state
         self.rigid_bodies = []  # List[RigidBody]
         self.soft_bodies = []   # List[SoftBody]
-        self.event_system = event_system
+        self.config = {}
+        
+        log("Physics system created", level="INFO")
+    
+    def initialize(self, config=None):
+        """Initialize physics system with configuration."""
+        self.config = config or {}
+        
+        # Initialize physics engine backend
+        backend = self.config.get("backend", "builtin")
+        
+        if backend == "bullet":
+            self._initialize_bullet_physics()
+        else:
+            self._initialize_builtin_physics()
+        
+        self._initialized = True
+        log(f"Physics initialized with {backend} backend", level="INFO")
+    
+    def _initialize_bullet_physics(self):
+        """Initialize PyBullet physics backend."""
+        try:
+            import pybullet as p
+            # Initialize bullet physics
+            self.physics_client = p.connect(p.DIRECT)  # No GUI
+            p.setGravity(0, -9.81, 0)  # Standard gravity
+            log("PyBullet physics backend initialized", level="INFO")
+        except ImportError:
+            log("PyBullet not available, falling back to builtin physics", level="WARNING")
+            self._initialize_builtin_physics()
+    
+    def _initialize_builtin_physics(self):
+        """Initialize builtin physics backend."""
+        # Simple physics simulation without external dependencies
+        self.gravity = self.config.get("gravity", -9.81)
+        self.physics_client = None
+        log("Builtin physics backend initialized", level="INFO")
 
     def add_rigid_body(self, body):
         self.rigid_bodies.append(body)
@@ -40,16 +82,27 @@ class Physics(PhysicsInterface):
         Run physics simulation step.
         Handles rigid/soft body simulation, collision detection, and emits events.
         """
+        if not self._initialized:
+            log("Physics not initialized, skipping simulation", level="WARNING")
+            return
+            
         try:
-            log("Simulating physics...", level="INFO")
-            # Rigid body simulation - integrate with ECS entities
+            log("Simulating physics...", level="DEBUG")
+            
+            # Integrate with ECS for entity-based physics
+            if self.ecs:
+                self._simulate_ecs_physics()
+            
+            # Rigid body simulation
             for body in self.rigid_bodies:
                 # body.simulate_step()  # Placeholder for RigidBody
                 pass
+                
             # Soft body simulation stub
             for body in self.soft_bodies:
                 # body.simulate_step()  # Placeholder for SoftBody
                 pass
+                
             # Collision detection - enhanced for ECS integration
             collisions = self._detect_collisions()
             for a, b in collisions:
@@ -57,8 +110,47 @@ class Physics(PhysicsInterface):
                 self.step_collision_response(a, b)
                 if self.event_system:
                     self.event_system.emit('physics_collision', {'a': a, 'b': b})
+                    
         except Exception as e:
             log(f"Physics simulation error: {e}", level="ERROR")
+            if self.event_system:
+                self.event_system.emit('system_error', {'system': 'Physics', 'error': str(e)})
+    
+    def _simulate_ecs_physics(self):
+        """Apply physics to ECS entities with physics components."""
+        if not self.ecs:
+            return
+            
+        # Get entities with physics-relevant components
+        physics_entities = self.ecs.get_entities_with('position', 'velocity')
+        
+        for entity in physics_entities:
+            position = entity.get_component('position')
+            velocity = entity.get_component('velocity')
+            mass_comp = entity.get_component('mass')
+            
+            if position and velocity:
+                # Apply gravity if entity has mass
+                if mass_comp and hasattr(mass_comp, 'mass') and mass_comp.mass > 0:
+                    # Simple gravity application
+                    gravity_force = self.gravity * mass_comp.mass
+                    velocity.vy += gravity_force * 0.016  # Assuming 60 FPS
+                
+                # Apply basic physics integration (handled by MovementSystem)
+                # This is just for physics-specific effects
+                pass
+    
+    def shutdown(self):
+        """Clean shutdown of physics system."""
+        if self.physics_client:
+            try:
+                import pybullet as p
+                p.disconnect(self.physics_client)
+            except:
+                pass
+        
+        self._initialized = False
+        log("Physics system shutdown", level="INFO")
     
     def simulate_ecs(self, ecs_instance):
         """

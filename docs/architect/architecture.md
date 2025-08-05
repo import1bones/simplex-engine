@@ -1,5 +1,7 @@
 # Architecture Review & Recommendations (Post-MVP-2)
 
+> **Note**: For detailed information about the 2025 architectural improvements, see [improvements-2025.md](./improvements-2025.md).
+
 ## Current Architecture Overview
 
 - **Subsystems:** Modular design with clear separation: Audio, Renderer, ResourceManager, Input, Scripting, EventSystem.
@@ -28,6 +30,14 @@
 - **Configuration:** Centralize and support live reloading; document templates for common use cases.
 
 ## Recommendations
+
+### Implemented in 2025 (See [improvements-2025.md](./improvements-2025.md))
+✅ **Engine Core Improvements**: Proper initialization order, dependency injection, and lifecycle management  
+✅ **ECS Enhancement**: Component filtering, O(1) entity lookup, and better error handling  
+✅ **Subsystem Modernization**: Backend abstraction and proper event integration  
+✅ **Error Handling**: Centralized error handling with event-driven reporting  
+
+### Future Recommendations
 1. **Define and enforce interfaces** for all subsystems to ease testing, extension, and replacement.
 2. **Expand the event system** with priorities and propagation; document event flows for contributors.
 3. **Generalize ResourceManager** for user-defined types and hot-reloading; track resource usage.
@@ -38,4 +48,4 @@
 8. **Automate integration/regression tests** for demo scenes and edge cases.
 
 ---
-This review reflects the current state after MVP-2 and provides a roadmap for architectural evolution toward extensibility, maintainability, and advanced features.
+This review reflects the current state after MVP-2 and the 2025 architectural improvements. The improvements document provides detailed information about the modernization efforts that have significantly enhanced the engine's maintainability, reliability, and extensibility.

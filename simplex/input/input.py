@@ -118,3 +118,7 @@ class Input(InputInterface):
         else:
             log(f"Unknown input backend: {self.backend}", level="WARNING")
             return {}
+    
+    def shutdown(self):
+        """Clean shutdown of input system."""
+        log("Input system shutdown", level="INFO")

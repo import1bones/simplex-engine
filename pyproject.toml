@@ -1,7 +1,7 @@
 [project]
 name = "simplex-engine"
 version = "0.0.1"
-description = "Add your description here"
+description = "Modern Python game engine for voxel-based worlds with ECS architecture, designed for building Minecraft-like games with infinite procedural worlds and multiplayer support."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

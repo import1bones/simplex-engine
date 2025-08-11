@@ -4,37 +4,42 @@ Understanding these core concepts is essential for working effectively with Simp
 
 ## 🏗️ Engine Architecture
 
-Simplex Engine follows modern game engine design principles:
+Simplex Engine follows modern game engine design principles, designed for 3D voxel-based games:
 
 ### [Engine Architecture](./architecture.md)
 - **Modular Design**: Subsystems with clear responsibilities
 - **Dependency Injection**: Proper system coordination
 - **Event-Driven**: Loose coupling between components
 - **Lifecycle Management**: Proper initialization and cleanup
+- **3D Rendering**: OpenGL backend for voxel worlds
+- **Chunk-Based Worlds**: Infinite procedural world support
 
 ### [System Integration](./system-integration.md)
 - How different systems work together
 - Communication patterns
 - Data flow through the engine
+- Voxel world streaming and management
 
 ## 🎮 Entity-Component-System (ECS)
 
-The heart of Simplex Engine's game object architecture:
+The heart of Simplex Engine's game object architecture, optimized for voxel-based worlds:
 
 ### [ECS Overview](./ecs.md)
-- **Entities**: Game objects (player, ball, enemies)
-- **Components**: Data containers (position, velocity, health)
-- **Systems**: Logic processors (movement, collision, rendering)
+- **Entities**: Game objects (players, blocks, chunks, mobs)
+- **Components**: Data containers (position, velocity, voxel, chunk)
+- **Systems**: Logic processors (movement, collision, world generation, rendering)
 
 ### [Component Design](./components.md)
 - Creating custom components
+- Voxel and chunk components
 - Component lifecycle
-- Best practices
+- Best practices for 3D worlds
 
 ### [System Development](./systems.md)
 - Building custom systems
+- World generation systems
 - System execution order
-- Component filtering
+- Spatial component filtering
 
 ## 📡 Event System
 

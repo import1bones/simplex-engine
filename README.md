@@ -10,16 +10,19 @@ This project aims to deliver the best experience to our customers:
 
 We believe a simplified engine (less code complexity, more functionality) will make game and video development faster, easier, and better.
 
+**Current Focus**: Building a Minecraft-like voxel game engine with infinite procedural worlds, multiplayer support, and comprehensive development tools.
+
 ## Features
 
 - **ECS Architecture**: Entity-Component-System for clean, modular game logic
+- **3D Voxel Rendering**: OpenGL-based rendering for block-based worlds (planned)
+- **Infinite Worlds**: Chunk-based streaming for limitless procedural worlds (planned)
 - **Event-Driven Design**: Unified event system for inter-system communication
-- **Input System**: Responsive input handling with keyboard support (W/S/UP/DOWN)
-- **Collision Detection**: AABB collision system with boundary checking
-- **Rendering System**: Pygame-based renderer with debug overlay support
-- **AI Systems**: Built-in AI movement and behavior systems
-- **Development Tools**: Debug overlays, pause system, and real-time configuration
-- **Scoring System**: Integrated scoring and game state management
+- **Input System**: Responsive input handling with keyboard/mouse support
+- **Collision Detection**: AABB collision system with voxel world integration
+- **Multiplayer Ready**: Network architecture for multiplayer voxel worlds (planned)
+- **World Generation**: Procedural terrain, biomes, and structures (planned)
+- **Development Tools**: Debug overlays, world editor, and real-time configuration
 
 ## Quick Start
 

@@ -2,8 +2,10 @@
 Minimal Renderer implementation for MVP.
 """
 
+
 from .interface import RendererInterface
 from simplex.utils.logger import log
+from simplex.renderer.opengl_renderer import OpenGLRenderer
 
 
 # --- MVP-2: Scene Graph and Advanced Rendering Scaffold ---
@@ -133,11 +135,21 @@ class Renderer(RendererInterface):
     def _initialize_opengl_backend(self):
         """Initialize OpenGL rendering backend."""
         try:
-            # Placeholder for OpenGL initialization
-            log("OpenGL backend not yet implemented, using debug backend", level="WARNING")
-            self._initialize_debug_backend()
-        except ImportError:
-            log("OpenGL not available, falling back to debug backend", level="WARNING")
+            self.opengl_renderer = OpenGLRenderer(
+                width=self.config.get("width", 800),
+                height=self.config.get("height", 600),
+                title=self.config.get("title", "Simplex Engine - OpenGL Renderer")
+            )
+            self.opengl_renderer.initialize()
+            if self.opengl_renderer.initialized:
+                self.opengl_renderer.set_scene_root(self.scene_root)
+                self.backend = "opengl"
+                log("OpenGL backend initialized", level="INFO")
+            else:
+                log("OpenGL backend failed to initialize, falling back to debug backend", level="WARNING")
+                self._initialize_debug_backend()
+        except Exception as e:
+            log(f"OpenGL backend failed to initialize: {e}, falling back to debug backend", level="WARNING")
             self._initialize_debug_backend()
     
     def _initialize_debug_backend(self):
@@ -182,15 +194,17 @@ class Renderer(RendererInterface):
         if not self._initialized:
             log("Renderer not initialized, skipping render", level="WARNING")
             return
-            
         try:
             if self.backend == "pygame":
                 self._render_pygame()
             elif self.backend == "opengl":
-                self._render_opengl()
+                if hasattr(self, "opengl_renderer"):
+                    self.opengl_renderer.render()
+                else:
+                    log("OpenGLRenderer not available, falling back to debug backend", level="WARNING")
+                    self._render_debug()
             else:
                 self._render_debug()
-                
         except Exception as e:
             log(f"Renderer error: {e}", level="ERROR")
             if self.event_system:

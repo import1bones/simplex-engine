@@ -1,0 +1,3 @@
+"""
+Renderer test suite.
+"""

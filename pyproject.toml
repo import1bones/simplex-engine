@@ -9,5 +9,6 @@ dependencies = [
     "pybullet>=3.2.7",
     "pygame>=2.6.1",
     "pyopengl>=3.1.9",
+    "pyopengl-accelerate>=3.1.9",
     "toml>=0.10.2",
 ]

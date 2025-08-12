@@ -73,6 +73,9 @@ class Engine:
         
         # Initialize renderer with config
         renderer_config = self.config.get("renderer", {})
+        # Default to OpenGL backend for 3D/voxel support
+        if "backend" not in renderer_config:
+            renderer_config["backend"] = "opengl"
         if renderer_config.get("enabled", True):
             self.renderer.initialize(renderer_config)
         

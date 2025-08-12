@@ -39,14 +39,30 @@ wheels = [
 ]
 
 [[package]]
+name = "pyopengl-accelerate"
+version = "3.1.9"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9d/9e/a87f972148971c785773dcc792226530ff78840420e34b3cc51b221693a2/pyopengl_accelerate-3.1.9.tar.gz", hash = "sha256:85957c7c76975818ff759ec9243f9dc7091ef6f373ea37a2eb50c320fd9a86f3", size = 21799, upload-time = "2025-01-20T02:19:47.081Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/69/896cab645d4f7c755eaaea71834811cd19e09003a9dbfa9273ba0aa42e10/PyOpenGL_accelerate-3.1.9-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:95fd40a537637355fb7f0a03c055fbad6efdeea059607f4966b7631b580353c5", size = 438474, upload-time = "2025-01-20T02:18:49.162Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/a3/3c8770ebfef3530f71722743c04632c3594b544461ce10ee4bc13f6aa6e9/PyOpenGL_accelerate-3.1.9-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d5992ebf8befb6e45c6198e45f0f2d8fa26c30cbae68a1f08d6646c6d95b5605", size = 2899068, upload-time = "2025-01-20T02:18:50.661Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/95/22c07ec2414928ddb50eb0e35d6cd6343ffef6ad74f42e86fefbaaa6b04e/PyOpenGL_accelerate-3.1.9-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:10ab017316dc8bced13b2426b9cc6ab9aeb627ca020e9bc0836ef92b5e0942ea", size = 3119442, upload-time = "2025-01-20T02:18:52.281Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/76/8095f7c5b68376cbde9e32c4be20089fb055558010580fdb3eff6f9c2e99/PyOpenGL_accelerate-3.1.9-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:d80dab32facd0195e8213754a7a71ba9d9343e413ff84bd8e552d7a66552b254", size = 2853493, upload-time = "2025-01-20T02:18:53.948Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/21/9acfae57fa636290380b7c43e4bd57fc513f04b75a036372306458be80ac/PyOpenGL_accelerate-3.1.9-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:eb56fa15bdf1a029a8bf1682f5af436b02e721fcd1b43cf05eeda99ca9b6a9e1", size = 3006703, upload-time = "2025-01-20T02:18:55.746Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/ab/5a3c821ed47a7bce8dfe6d35a9dd903b2906f5cf8380d29620ca86cb4d02/PyOpenGL_accelerate-3.1.9-cp313-cp313-win32.whl", hash = "sha256:19dda83f7c96f598b8bc895ee2199bd1c45d064993175bbbe251905b9d9b40a4", size = 357167, upload-time = "2025-01-20T02:18:57.844Z" },
+    { url = "https://files.pythonhosted.org/packages/03/d3/b0b5b4c5404d7269458f4297b2fe86017daed8f29f40f07eb25ee51c902e/PyOpenGL_accelerate-3.1.9-cp313-cp313-win_amd64.whl", hash = "sha256:ed02cc9abd7662e787bc7491bf7f78f6536cf550a148d0fbff6727bed9b57124", size = 417563, upload-time = "2025-01-20T02:18:59.803Z" },
+]
+
+[[package]]
 name = "simplex-engine"
-version = "0.1.0"
+version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
     { name = "logging" },
     { name = "pybullet" },
     { name = "pygame" },
     { name = "pyopengl" },
+    { name = "pyopengl-accelerate" },
     { name = "toml" },
 ]
 
@@ -56,6 +72,7 @@ requires-dist = [
     { name = "pybullet", specifier = ">=3.2.7" },
     { name = "pygame", specifier = ">=2.6.1" },
     { name = "pyopengl", specifier = ">=3.1.9" },
+    { name = "pyopengl-accelerate", specifier = ">=3.1.9" },
     { name = "toml", specifier = ">=0.10.2" },
 ]
 

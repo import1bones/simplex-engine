@@ -166,8 +166,28 @@ class OpenGLDebugRenderer:
         # Render some test cubes for demo
         self._render_test_world()
         
-        # Switch to 2D mode for UI overlay
-        self._setup_2d_overlay()
+        # Render debug UI directly in OpenGL (if enabled)
+        if self.debug_ui.enabled:
+            self._render_debug_overlay_opengl()
+        
+        pygame.display.flip()
+    
+    def _render_debug_overlay_opengl(self):
+        """Render debug overlay directly using OpenGL."""
+        # Switch to 2D orthographic projection
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glPushMatrix()
+        gl.glLoadIdentity()
+        gl.glOrtho(0, self.renderer.width, self.renderer.height, 0, -1, 1)
+        
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glPushMatrix()
+        gl.glLoadIdentity()
+        
+        # Disable depth testing for 2D overlay
+        gl.glDisable(gl.GL_DEPTH_TEST)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         
         # Update debug info
         renderer_info = {
@@ -177,14 +197,66 @@ class OpenGLDebugRenderer:
         }
         self.debug_ui.update_info(renderer_info)
         
-        # Create a pygame surface for 2D overlay
-        overlay_surface = pygame.Surface((self.renderer.width, self.renderer.height), pygame.SRCALPHA)
-        self.debug_ui.render_2d_overlay(overlay_surface)
+        # Draw semi-transparent background
+        gl.glColor4f(0.0, 0.0, 0.0, 0.7)  # Black with 70% opacity
+        gl.glBegin(gl.GL_QUADS)
+        gl.glVertex2f(10, 10)
+        gl.glVertex2f(320, 10)
+        gl.glVertex2f(320, len(self.debug_ui.info_text) * 20 + 30)
+        gl.glVertex2f(10, len(self.debug_ui.info_text) * 20 + 30)
+        gl.glEnd()
         
-        # Convert pygame surface to OpenGL texture and render
-        self._render_pygame_surface_to_opengl(overlay_surface)
+        # Draw text outline/border for better visibility
+        gl.glColor3f(1.0, 1.0, 1.0)  # White text
+        y_pos = 30
+        for line in self.debug_ui.info_text:
+            if line.strip():  # Skip empty lines
+                self._draw_text_simple(line, 20, y_pos)
+            y_pos += 20
         
-        pygame.display.flip()
+        # Restore 3D state
+        gl.glDisable(gl.GL_BLEND)
+        gl.glEnable(gl.GL_DEPTH_TEST)
+        
+        gl.glPopMatrix()
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glPopMatrix()
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+    
+    def _draw_text_simple(self, text, x, y):
+        """Draw simple text using OpenGL lines (basic bitmap-style)."""
+        # This is a very basic text rendering - just draw the text info as simple shapes
+        # For demonstration, we'll draw simple rectangular indicators for each line
+        if "FPS:" in text:
+            gl.glColor3f(0.0, 1.0, 0.0)  # Green for FPS
+        elif "Camera:" in text:
+            gl.glColor3f(0.0, 0.8, 1.0)  # Cyan for camera
+        elif "Primitives:" in text:
+            gl.glColor3f(1.0, 0.8, 0.0)  # Yellow for primitives
+        elif "Backend:" in text:
+            gl.glColor3f(1.0, 0.5, 0.0)  # Orange for backend
+        elif "Controls:" in text or any(key in text for key in ["F1", "WASD", "Q/E", "ESC"]):
+            gl.glColor3f(0.8, 0.8, 0.8)  # Light gray for controls
+        else:
+            gl.glColor3f(1.0, 1.0, 1.0)  # White for other text
+        
+        # Draw a simple colored rectangle as text indicator
+        gl.glBegin(gl.GL_QUADS)
+        text_width = len(text) * 6  # Approximate text width
+        gl.glVertex2f(x, y - 2)
+        gl.glVertex2f(x + text_width, y - 2)
+        gl.glVertex2f(x + text_width, y + 12)
+        gl.glVertex2f(x, y + 12)
+        gl.glEnd()
+        
+        # Draw text outline
+        gl.glColor3f(0.0, 0.0, 0.0)  # Black outline
+        gl.glBegin(gl.GL_LINE_LOOP)
+        gl.glVertex2f(x, y - 2)
+        gl.glVertex2f(x + text_width, y - 2)
+        gl.glVertex2f(x + text_width, y + 12)
+        gl.glVertex2f(x, y + 12)
+        gl.glEnd()
     
     def _traverse_and_render_debug(self, node, parent_transform=None):
         """Traverse scene graph and count rendered primitives."""
@@ -248,25 +320,3 @@ class OpenGLDebugRenderer:
         gl.glVertex3f( 0.5, -0.5,  0.5)
         gl.glVertex3f(-0.5, -0.5,  0.5)
         gl.glEnd()
-    
-    def _setup_2d_overlay(self):
-        """Setup 2D projection for UI overlay."""
-        gl.glMatrixMode(gl.GL_PROJECTION)
-        gl.glLoadIdentity()
-        gl.glOrtho(0, self.renderer.width, self.renderer.height, 0, -1, 1)
-        gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glLoadIdentity()
-        gl.glDisable(gl.GL_DEPTH_TEST)
-    
-    def _render_pygame_surface_to_opengl(self, surface):
-        """Render pygame surface as OpenGL texture for 2D overlay."""
-        # This is a simplified version - in practice you'd want texture caching
-        texture_data = pygame.image.tostring(surface, "RGBA", True)
-        
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        
-        # For now, just re-enable depth test and return
-        # Full texture rendering would require more complex setup
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glDisable(gl.GL_BLEND)

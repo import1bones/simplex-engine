@@ -142,6 +142,13 @@ class OpenGLRenderer(RendererInterface):
                 node.get_component("mesh") if hasattr(node, "get_component") else None
             )
             if mesh_comp and getattr(mesh_comp, "vertices", None):
+                # If GPU handle not present, attempt upload now (context guaranteed here)
+                if getattr(mesh_comp, "gpu", None) is None and create_vbo_for_mesh:
+                    try:
+                        mesh_comp.gpu = create_vbo_for_mesh(mesh_comp.vertices, mesh_comp.colors)
+                        log(f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count')})", level="DEBUG")
+                    except Exception as e:
+                        log(f"OpenGLRenderer: GPU upload failed: {e}", level="DEBUG")
                 self._draw_mesh(mesh_comp)
 
         # For now, ignore transforms and just draw cubes for primitives named 'cube' or 'voxel'
@@ -257,6 +264,13 @@ class OpenGLRenderer(RendererInterface):
         gl.glEnd()
 
     def shutdown(self):
+        # Clean up VBOs created via gl_utils
+        try:
+            if 'delete_all_vbos' in globals():
+                from .gl_utils import delete_all_vbos
+                delete_all_vbos()
+        except Exception:
+            pass
         if pygame:
             pygame.quit()
         self.initialized = False

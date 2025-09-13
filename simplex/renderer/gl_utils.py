@@ -14,6 +14,9 @@ except Exception:
     gl = None
     ctypes = None
 
+# Track allocated handles so we can cleanup on shutdown
+_ALLOCATED_HANDLES = []
+
 
 def create_vbo_for_mesh(vertices: List[float], colors: List[float]) -> Dict[str, Any]:
     """Create VBOs for vertex and color arrays and return a small handle dict.
@@ -26,38 +29,53 @@ def create_vbo_for_mesh(vertices: List[float], colors: List[float]) -> Dict[str,
     # Convert to GLfloat arrays
     vert_count = len(vertices) // 3
     # Create ctypes arrays from Python lists
-    GLfloatArrayType = gl.GLfloat * len(vertices)
-    colorArrayType = gl.GLfloat * len(colors)
+    GLfloatArrayType = (gl.GLfloat * len(vertices))
+    colorArrayType = (gl.GLfloat * len(colors))
     vert_array = GLfloatArrayType(*vertices)
     col_array = colorArrayType(*colors)
 
     # Create VBO for vertices
     vbo = gl.glGenBuffers(1)
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo)
-    gl.glBufferData(
-        gl.GL_ARRAY_BUFFER, ctypes.sizeof(vert_array), vert_array, gl.GL_STATIC_DRAW
-    )
+    gl.glBufferData(gl.GL_ARRAY_BUFFER, ctypes.sizeof(vert_array), vert_array, gl.GL_STATIC_DRAW)
 
     # Create VBO for colors
     vbo_color = gl.glGenBuffers(1)
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo_color)
-    gl.glBufferData(
-        gl.GL_ARRAY_BUFFER, ctypes.sizeof(col_array), col_array, gl.GL_STATIC_DRAW
-    )
+    gl.glBufferData(gl.GL_ARRAY_BUFFER, ctypes.sizeof(col_array), col_array, gl.GL_STATIC_DRAW)
 
     # Unbind
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
-    return {"vbo": vbo, "vbo_color": vbo_color, "count": vert_count}
+    handle = {'vbo': vbo, 'vbo_color': vbo_color, 'count': vert_count}
+    _ALLOCATED_HANDLES.append(handle)
+    return handle
 
 
 def delete_vbo(handle: Dict[str, Any]) -> None:
     if not gl or not handle:
         return
     try:
-        if "vbo" in handle and handle["vbo"]:
-            gl.glDeleteBuffers(1, [handle["vbo"]])
-        if "vbo_color" in handle and handle["vbo_color"]:
-            gl.glDeleteBuffers(1, [handle["vbo_color"]])
+        if 'vbo' in handle and handle['vbo']:
+            gl.glDeleteBuffers(1, [handle['vbo']])
+        if 'vbo_color' in handle and handle['vbo_color']:
+            gl.glDeleteBuffers(1, [handle['vbo_color']])
     except Exception:
         pass
+    try:
+        _ALLOCATED_HANDLES.remove(handle)
+    except ValueError:
+        pass
+
+
+def delete_all_vbos() -> None:
+    """Delete all allocated VBO handles tracked by this module."""
+    if not gl:
+        _ALLOCATED_HANDLES.clear()
+        return
+    for h in list(_ALLOCATED_HANDLES):
+        try:
+            delete_vbo(h)
+        except Exception:
+            pass
+    _ALLOCATED_HANDLES.clear()

@@ -11,7 +11,7 @@ optimized meshers (greedy meshing) and VBO upload helpers.
 
 from .voxel import BLOCK_AIR, Block, PALETTE, is_solid, get_block_color
 from .chunk import Chunk
-from .meshgen import generate_naive_mesh
+from .meshgen import generate_naive_mesh, generate_greedy_mesh
 
 __all__ = [
     "BLOCK_AIR",
@@ -21,4 +21,5 @@ __all__ = [
     "get_block_color",
     "Chunk",
     "generate_naive_mesh",
+    "generate_greedy_mesh",
 ]

@@ -50,7 +50,13 @@ class ChunkMeshSystem(System):
         for entity in entities:
             chunk_comp = entity.get_component("chunk")
             if chunk_comp and chunk_comp.has_chunk() and chunk_comp.dirty:
-                verts, cols = generate_naive_mesh(chunk_comp.chunk)
+                # Use greedy mesh generator for fewer vertices when available
+                try:
+                    from simplex.voxel.meshgen import generate_greedy_mesh
+
+                    verts, cols = generate_greedy_mesh(chunk_comp.chunk)
+                except Exception:
+                    verts, cols = generate_naive_mesh(chunk_comp.chunk)
                 mesh_comp = entity.get_component("mesh")
                 # compute world-space origin from chunk coordinates and chunk size
                 chunk_obj = chunk_comp.chunk
@@ -69,16 +75,7 @@ class ChunkMeshSystem(System):
                     mesh_comp.colors = cols
                     mesh_comp.origin = origin
 
-                # Upload to GPU if renderer helper available (non-blocking fast path)
-                try:
-                    from simplex.renderer.gl_utils import create_vbo_for_mesh
-
-                    if create_vbo_for_mesh:
-                        gpu_handle = create_vbo_for_mesh(verts, cols)
-                        mesh_comp.gpu = gpu_handle
-                except Exception:
-                    # Ignore GPU upload failures in headless/test environments
-                    pass
+                # GPU upload is handled by the renderer (context required). Leave mesh_comp.gpu unset.
 
                 chunk_comp.clear_dirty()
                 log(

@@ -17,6 +17,13 @@ except ImportError:
     glu = None
     pygame = None
 
+try:
+    from .gl_utils import create_vbo_for_mesh, delete_vbo
+except Exception:
+    create_vbo_for_mesh = None
+    delete_vbo = None
+
+
 class OpenGLRenderer(RendererInterface):
     def __init__(self, width=800, height=600, title="Simplex Engine - OpenGL Renderer"):
         self.width = width
@@ -33,18 +40,21 @@ class OpenGLRenderer(RendererInterface):
 
     def initialize(self):
         if not gl or not pygame:
-            log("PyOpenGL or pygame not available, cannot initialize OpenGLRenderer", level="ERROR")
+            log(
+                "PyOpenGL or pygame not available, cannot initialize OpenGLRenderer",
+                level="ERROR",
+            )
             return False
         try:
             # Check if pygame is already initialized
             if not pygame.get_init():
                 pygame.init()
-            
+
             # Try to initialize OpenGL context
             # If display is already initialized, try to quit and reinitialize
             if pygame.display.get_init():
                 pygame.display.quit()
-            
+
             pygame.display.set_mode((self.width, self.height), DOUBLEBUF | OPENGL)
             pygame.display.set_caption(self.title)
             gl.glEnable(gl.GL_DEPTH_TEST)
@@ -93,7 +103,7 @@ class OpenGLRenderer(RendererInterface):
         gl.glMatrixMode(gl.GL_MODELVIEW)
         gl.glLoadIdentity()
         # Simple camera: move back to see the scene
-        if self.camera and hasattr(self.camera, 'position'):
+        if self.camera and hasattr(self.camera, "position"):
             pos = self.camera.position
             glu.gluLookAt(pos[0], pos[1], pos[2], 0, 0, 0, 0, 1, 0)
         else:
@@ -109,76 +119,141 @@ class OpenGLRenderer(RendererInterface):
         pygame.display.flip()
         # Remove debug log to avoid spam
         # log("OpenGL frame rendered", level="DEBUG")
-    
+
     def _render_default_test_content(self):
         """Render some default content when no scene is set."""
         # Draw a simple rotating cube at origin
         gl.glPushMatrix()
         gl.glColor3f(0.8, 0.4, 0.2)  # Orange color
-        
+
         # Simple rotation based on time
         import time
+
         rotation = (time.time() * 50) % 360
         gl.glRotatef(rotation, 1, 1, 0)
-        
+
         self._draw_unit_cube()
         gl.glPopMatrix()
 
     def _traverse_and_render(self, node, parent_transform=None):
+        # Draw mesh component if present
+        if hasattr(node, "components"):
+            mesh_comp = (
+                node.get_component("mesh") if hasattr(node, "get_component") else None
+            )
+            if mesh_comp and getattr(mesh_comp, "vertices", None):
+                self._draw_mesh(mesh_comp)
+
         # For now, ignore transforms and just draw cubes for primitives named 'cube' or 'voxel'
-        if hasattr(node, 'primitive') and node.primitive in ("cube", "voxel"):
+        if hasattr(node, "primitive") and node.primitive in ("cube", "voxel"):
             self._draw_cube(node)
-        if hasattr(node, 'children'):
+        if hasattr(node, "children"):
             for child in node.children:
                 self._traverse_and_render(child)
 
+    def _draw_mesh(self, mesh_comp):
+        """Immediate-mode fallback to draw meshes stored in MeshComponent.
+
+        Honors mesh_comp.origin to place chunk meshes in world space.
+        If VBOs are available, upload once and draw using VBOs.
+        """
+        verts = mesh_comp.vertices or []
+        cols = mesh_comp.colors or []
+        if not verts:
+            return
+
+        # If a GPU handle exists, draw using VBOs
+        if getattr(mesh_comp, "gpu", None) and gl and create_vbo_for_mesh:
+            handle = mesh_comp.gpu
+            gl.glPushMatrix()
+            if getattr(mesh_comp, "origin", None):
+                ox, oy, oz = mesh_comp.origin
+                gl.glTranslatef(ox, oy, oz)
+            # Bind vertex VBO
+            gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
+            gl.glEnableClientState(gl.GL_COLOR_ARRAY)
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, handle["vbo"])
+            gl.glVertexPointer(3, gl.GL_FLOAT, 0, None)
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, handle["vbo_color"])
+            gl.glColorPointer(4, gl.GL_FLOAT, 0, None)
+            gl.glDrawArrays(gl.GL_TRIANGLES, 0, handle["count"])
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+            gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
+            gl.glDisableClientState(gl.GL_COLOR_ARRAY)
+            gl.glPopMatrix()
+            return
+
+        # Otherwise fallback to immediate-mode draw
+        gl.glPushMatrix()
+        # Apply mesh world origin translation
+        if getattr(mesh_comp, "origin", None):
+            ox, oy, oz = mesh_comp.origin
+            gl.glTranslatef(ox, oy, oz)
+        gl.glBegin(gl.GL_TRIANGLES)
+        vcount = len(verts) // 3
+        for i in range(vcount):
+            r, g, b, a = (1.0, 1.0, 1.0, 1.0)
+            if len(cols) >= (i + 1) * 4:
+                r = cols[i * 4 + 0]
+                g = cols[i * 4 + 1]
+                b = cols[i * 4 + 2]
+                a = cols[i * 4 + 3]
+            gl.glColor4f(r, g, b, a)
+            gl.glVertex3f(verts[i * 3 + 0], verts[i * 3 + 1], verts[i * 3 + 2])
+        gl.glEnd()
+        gl.glPopMatrix()
+
     def _draw_cube(self, node):
         # Draw a simple colored cube at node.position (default at origin)
-        pos = getattr(node, 'position', (0, 0, 0))
-        size = getattr(node, 'size', 1)
+        pos = getattr(node, "position", (0, 0, 0))
+        size = getattr(node, "size", 1)
         color = (1.0, 1.0, 1.0)
-        if hasattr(node, 'material') and node.material and hasattr(node.material, 'properties'):
-            color = node.material.properties.get('color', color)
+        if (
+            hasattr(node, "material")
+            and node.material
+            and hasattr(node.material, "properties")
+        ):
+            color = node.material.properties.get("color", color)
         gl.glPushMatrix()
         gl.glTranslatef(pos[0], pos[1], pos[2])
         gl.glScalef(size, size, size)
         gl.glColor3f(*color)
         self._draw_unit_cube()
         gl.glPopMatrix()
-    
+
     def _draw_unit_cube(self):
         """Draw a unit cube centered at origin."""
         gl.glBegin(gl.GL_QUADS)
         # Front face
-        gl.glVertex3f(-0.5, -0.5,  0.5)
-        gl.glVertex3f( 0.5, -0.5,  0.5)
-        gl.glVertex3f( 0.5,  0.5,  0.5)
-        gl.glVertex3f(-0.5,  0.5,  0.5)
+        gl.glVertex3f(-0.5, -0.5, 0.5)
+        gl.glVertex3f(0.5, -0.5, 0.5)
+        gl.glVertex3f(0.5, 0.5, 0.5)
+        gl.glVertex3f(-0.5, 0.5, 0.5)
         # Back face
         gl.glVertex3f(-0.5, -0.5, -0.5)
-        gl.glVertex3f(-0.5,  0.5, -0.5)
-        gl.glVertex3f( 0.5,  0.5, -0.5)
-        gl.glVertex3f( 0.5, -0.5, -0.5)
+        gl.glVertex3f(-0.5, 0.5, -0.5)
+        gl.glVertex3f(0.5, 0.5, -0.5)
+        gl.glVertex3f(0.5, -0.5, -0.5)
         # Left face
         gl.glVertex3f(-0.5, -0.5, -0.5)
-        gl.glVertex3f(-0.5, -0.5,  0.5)
-        gl.glVertex3f(-0.5,  0.5,  0.5)
-        gl.glVertex3f(-0.5,  0.5, -0.5)
+        gl.glVertex3f(-0.5, -0.5, 0.5)
+        gl.glVertex3f(-0.5, 0.5, 0.5)
+        gl.glVertex3f(-0.5, 0.5, -0.5)
         # Right face
         gl.glVertex3f(0.5, -0.5, -0.5)
-        gl.glVertex3f(0.5,  0.5, -0.5)
-        gl.glVertex3f(0.5,  0.5,  0.5)
-        gl.glVertex3f(0.5, -0.5,  0.5)
+        gl.glVertex3f(0.5, 0.5, -0.5)
+        gl.glVertex3f(0.5, 0.5, 0.5)
+        gl.glVertex3f(0.5, -0.5, 0.5)
         # Top face
         gl.glVertex3f(-0.5, 0.5, -0.5)
-        gl.glVertex3f(-0.5, 0.5,  0.5)
-        gl.glVertex3f( 0.5, 0.5,  0.5)
-        gl.glVertex3f( 0.5, 0.5, -0.5)
+        gl.glVertex3f(-0.5, 0.5, 0.5)
+        gl.glVertex3f(0.5, 0.5, 0.5)
+        gl.glVertex3f(0.5, 0.5, -0.5)
         # Bottom face
         gl.glVertex3f(-0.5, -0.5, -0.5)
-        gl.glVertex3f( 0.5, -0.5, -0.5)
-        gl.glVertex3f( 0.5, -0.5,  0.5)
-        gl.glVertex3f(-0.5, -0.5,  0.5)
+        gl.glVertex3f(0.5, -0.5, -0.5)
+        gl.glVertex3f(0.5, -0.5, 0.5)
+        gl.glVertex3f(-0.5, -0.5, 0.5)
         gl.glEnd()
 
     def shutdown(self):

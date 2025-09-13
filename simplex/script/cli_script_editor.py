@@ -2,9 +2,11 @@
 Basic CLI implementation of ScriptEditorInterface for simplex-engine.
 Allows listing, viewing, and editing scripts from the terminal.
 """
+
 import os
 import subprocess
 from .script_editor_interface import ScriptEditorInterface
+
 
 class CLIScriptEditor(ScriptEditorInterface):
     def __init__(self, script_dir="examples/mvp/scripts"):
@@ -12,7 +14,7 @@ class CLIScriptEditor(ScriptEditorInterface):
 
     def list_scripts(self):
         try:
-            scripts = [f for f in os.listdir(self.script_dir) if f.endswith('.py')]
+            scripts = [f for f in os.listdir(self.script_dir) if f.endswith(".py")]
             print("Available scripts:")
             for idx, script in enumerate(scripts):
                 print(f"  [{idx}] {script}")
@@ -23,7 +25,7 @@ class CLIScriptEditor(ScriptEditorInterface):
 
     def view_script(self, script_path):
         try:
-            with open(script_path, 'r') as f:
+            with open(script_path, "r") as f:
                 print(f.read())
         except Exception as e:
             print(f"Error viewing script: {e}")

@@ -2,7 +2,9 @@
 ScriptEditorInterface for simplex-engine.
 Defines the interface for in-engine script editors (CLI or GUI).
 """
+
 from abc import ABC, abstractmethod
+
 
 class ScriptEditorInterface(ABC):
     @abstractmethod

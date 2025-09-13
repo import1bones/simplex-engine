@@ -2,9 +2,11 @@
 ResourceHotReloader for simplex-engine MVP-3.
 Watches resource files and triggers reloads on change.
 """
+
 import os
 import time
 from simplex.utils.logger import log
+
 
 class ResourceHotReloader:
     def __init__(self, resource_manager, watch_paths, poll_interval=1.0):

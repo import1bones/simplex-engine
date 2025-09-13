@@ -2,9 +2,11 @@
 ConfigHotReloader for simplex-engine MVP-3.
 Watches the config file and reloads it on change, emitting an event.
 """
+
 import os
 import time
 from simplex.utils.logger import log
+
 
 class ConfigHotReloader:
     def __init__(self, config, config_path, event_system=None, poll_interval=1.0):
@@ -23,7 +25,7 @@ class ConfigHotReloader:
                 self.config.reload()  # Assumes Config has a reload() method
                 log(f"Config hot-reloaded: {self.config_path}", level="INFO")
                 if self.event_system:
-                    self.event_system.emit('config_reload', self.config)
+                    self.event_system.emit("config_reload", self.config)
         except Exception as e:
             log(f"Config hot-reload error: {e}", level="ERROR")
 

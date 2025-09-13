@@ -1,7 +1,9 @@
 """
 ECS (Entity-Component-System) interface for simplex-engine.
 """
+
 from abc import ABC, abstractmethod
+
 
 class ECSInterface(ABC):
     @abstractmethod

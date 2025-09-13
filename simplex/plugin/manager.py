@@ -2,8 +2,10 @@ import importlib.util
 import os
 from .interface import PluginInterface
 
+
 class PluginManager:
     """Discovers and loads plugins from a directory."""
+
     def __init__(self, plugin_dir="plugins"):
         self.plugin_dir = plugin_dir
         self.plugins = []
@@ -19,7 +21,11 @@ class PluginManager:
                 spec.loader.exec_module(module)
                 for attr in dir(module):
                     obj = getattr(module, attr)
-                    if isinstance(obj, type) and issubclass(obj, PluginInterface) and obj is not PluginInterface:
+                    if (
+                        isinstance(obj, type)
+                        and issubclass(obj, PluginInterface)
+                        and obj is not PluginInterface
+                    ):
                         plugin = obj()
                         plugin.on_load(engine)
                         self.plugins.append(plugin)

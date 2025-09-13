@@ -1,13 +1,16 @@
 """
 Input system interface for simplex-engine.
 """
+
 from abc import ABC, abstractmethod
+
 
 class InputInterface(ABC):
     """
     Abstract input system interface for simplex-engine.
     Allows flexible backend implementation (e.g., pygame, custom, etc).
     """
+
     @abstractmethod
     def poll(self):
         """Poll input events from backend."""

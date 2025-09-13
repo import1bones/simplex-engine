@@ -2,8 +2,10 @@
 Simple event system for simplex-engine MVP.
 Allows subsystems to communicate via events.
 """
+
 from typing import Callable, Dict, List, Any
 from simplex.utils.logger import log
+
 
 class EventSystem:
     """
@@ -35,6 +37,7 @@ class EventSystem:
         events.register('input', stopper, priority=1)
         events.emit('input', {'key': 'A'})
     """
+
     """
     Basic event system for registering, emitting, and handling events.
     Extensible for priorities, propagation, async support, and advanced features as engine grows.
@@ -43,11 +46,18 @@ class EventSystem:
         events.register('input', handler)
         events.emit('input', data)
     """
+
     def __init__(self):
         # Listeners: event_type -> list of (priority, listener, capture)
         self._listeners: Dict[str, List[tuple]] = {}
 
-    def register(self, event_type: str, listener: Callable[[Any], None], priority: int = 0, capture: bool = False) -> None:
+    def register(
+        self,
+        event_type: str,
+        listener: Callable[[Any], None],
+        priority: int = 0,
+        capture: bool = False,
+    ) -> None:
         """
         Register a listener for a specific event type.
         Listeners with higher priority are called first. If capture=True, listener is called during capture phase.
@@ -57,7 +67,10 @@ class EventSystem:
         self._listeners[event_type].append((priority, listener, capture))
         # Sort listeners by priority (descending)
         self._listeners[event_type].sort(key=lambda x: -x[0])
-        log(f"Listener registered for event: {event_type} (priority={priority}, capture={capture})", level="DEBUG")
+        log(
+            f"Listener registered for event: {event_type} (priority={priority}, capture={capture})",
+            level="DEBUG",
+        )
 
     def emit(self, event_type: str, data: Any = None, propagate: bool = True) -> None:
         """
@@ -66,14 +79,19 @@ class EventSystem:
         If a listener returns False, propagation is stopped.
         """
         listeners = self._listeners.get(event_type, [])
-        log(f"Emitting event: {event_type} to {len(listeners)} listeners", level="DEBUG")
+        log(
+            f"Emitting event: {event_type} to {len(listeners)} listeners", level="DEBUG"
+        )
         # Capture phase: call listeners with capture=True
         for priority, listener, capture in listeners:
             if capture:
                 try:
                     result = listener(data)
                     if result is False and propagate:
-                        log(f"Event propagation stopped by capture listener for {event_type}", level="DEBUG")
+                        log(
+                            f"Event propagation stopped by capture listener for {event_type}",
+                            level="DEBUG",
+                        )
                         return
                 except Exception as e:
                     log(f"Error in event listener for {event_type}: {e}", level="ERROR")
@@ -83,11 +101,14 @@ class EventSystem:
                 try:
                     result = listener(data)
                     if result is False and propagate:
-                        log(f"Event propagation stopped by bubble listener for {event_type}", level="DEBUG")
+                        log(
+                            f"Event propagation stopped by bubble listener for {event_type}",
+                            level="DEBUG",
+                        )
                         return
                 except Exception as e:
                     log(f"Error in event listener for {event_type}: {e}", level="ERROR")
-    
+
     def shutdown(self) -> None:
         """Clean shutdown of event system."""
         self._listeners.clear()

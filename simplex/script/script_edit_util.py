@@ -2,7 +2,9 @@
 Script editing utility for simplex-engine MVP-3.
 Allows users to list, view, and edit scripts from the CLI, with hot-reload support.
 """
+
 from simplex.script.cli_script_editor import CLIScriptEditor
+
 
 def run_script_editor():
     editor = CLIScriptEditor()
@@ -30,6 +32,7 @@ def run_script_editor():
             break
         else:
             print("Invalid option.")
+
 
 if __name__ == "__main__":
     run_script_editor()

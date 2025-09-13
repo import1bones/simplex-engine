@@ -1,7 +1,9 @@
 """
 Resource manager interface for simplex-engine.
 """
+
 from abc import ABC, abstractmethod
+
 
 class ResourceManagerInterface(ABC):
     @abstractmethod

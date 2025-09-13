@@ -1,6 +1,7 @@
 """
 Minimal Input system implementation for MVP.
 """
+
 from .interface import InputInterface
 from simplex.utils.logger import log
 
@@ -11,6 +12,7 @@ class Input(InputInterface):
     Supports flexible backend (e.g., pygame) and error handling.
     Can emit events via an event system.
     """
+
     def __init__(self, backend=None, event_system=None):
         self.backend = backend
         self.event_system = event_system
@@ -22,10 +24,12 @@ class Input(InputInterface):
         """
         if not self._initialized:
             import pygame
+
             pygame.init()
             # Create a hidden display to allow event polling
             pygame.display.set_mode((1, 1), pygame.HIDDEN)
             self._initialized = True
+
     def set_backend(self, backend: str) -> None:
         """
         Set the input backend implementation.
@@ -43,6 +47,7 @@ class Input(InputInterface):
             try:
                 self._init_pygame()
                 import pygame
+
                 pygame.event.pump()
                 events = pygame.event.get()
                 log(f"Polled {len(events)} pygame events.", level="INFO")
@@ -50,20 +55,24 @@ class Input(InputInterface):
                 if self.event_system:
                     for event in events:
                         # Touch support: emit 'touch' for FINGER events
-                        if event.type in (getattr(pygame, 'FINGERDOWN', None), getattr(pygame, 'FINGERUP', None), getattr(pygame, 'FINGERMOTION', None)):
+                        if event.type in (
+                            getattr(pygame, "FINGERDOWN", None),
+                            getattr(pygame, "FINGERUP", None),
+                            getattr(pygame, "FINGERMOTION", None),
+                        ):
                             touch_data = {
                                 "type": "touch",
                                 "event": event.type,
-                                "x": getattr(event, 'x', None),
-                                "y": getattr(event, 'y', None),
-                                "dx": getattr(event, 'dx', None),
-                                "dy": getattr(event, 'dy', None),
-                                "finger_id": getattr(event, 'finger_id', None),
-                                "touch_id": getattr(event, 'touch_id', None),
+                                "x": getattr(event, "x", None),
+                                "y": getattr(event, "y", None),
+                                "dx": getattr(event, "dx", None),
+                                "dy": getattr(event, "dy", None),
+                                "finger_id": getattr(event, "finger_id", None),
+                                "touch_id": getattr(event, "touch_id", None),
                             }
-                            self.event_system.emit('touch', touch_data)
+                            self.event_system.emit("touch", touch_data)
                         else:
-                            self.event_system.emit('input', event)
+                            self.event_system.emit("input", event)
 
                 # Gamepad support: detect and emit gamepad events
                 pygame.joystick.init()
@@ -74,13 +83,23 @@ class Input(InputInterface):
                     gamepad_state = {
                         "id": jid,
                         "name": joystick.get_name(),
-                        "axes": [joystick.get_axis(i) for i in range(joystick.get_numaxes())],
-                        "buttons": [joystick.get_button(i) for i in range(joystick.get_numbuttons())],
-                        "hats": [joystick.get_hat(i) for i in range(joystick.get_numhats())],
+                        "axes": [
+                            joystick.get_axis(i) for i in range(joystick.get_numaxes())
+                        ],
+                        "buttons": [
+                            joystick.get_button(i)
+                            for i in range(joystick.get_numbuttons())
+                        ],
+                        "hats": [
+                            joystick.get_hat(i) for i in range(joystick.get_numhats())
+                        ],
                     }
-                    log(f"Gamepad detected: {gamepad_state['name']} (id {jid})", level="INFO")
+                    log(
+                        f"Gamepad detected: {gamepad_state['name']} (id {jid})",
+                        level="INFO",
+                    )
                     if self.event_system:
-                        self.event_system.emit('gamepad', gamepad_state)
+                        self.event_system.emit("gamepad", gamepad_state)
             except ImportError:
                 log("pygame not installed.", level="ERROR")
             except Exception as e:
@@ -90,7 +109,7 @@ class Input(InputInterface):
             log("Polling input events with custom backend (demo only)...", level="INFO")
             if self.event_system:
                 fake_event = {"type": "custom_input", "info": "demo event"}
-                self.event_system.emit('input', fake_event)
+                self.event_system.emit("input", fake_event)
         else:
             log(f"Unknown input backend: {self.backend}", level="WARNING")
 
@@ -102,6 +121,7 @@ class Input(InputInterface):
         if self.backend == "pygame":
             try:
                 import pygame
+
                 keys = pygame.key.get_pressed()
                 mouse = pygame.mouse.get_pressed()
                 log("Getting pygame input state.", level="INFO")
@@ -118,7 +138,7 @@ class Input(InputInterface):
         else:
             log(f"Unknown input backend: {self.backend}", level="WARNING")
             return {}
-    
+
     def shutdown(self):
         """Clean shutdown of input system."""
         log("Input system shutdown", level="INFO")

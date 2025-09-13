@@ -1,0 +1,3 @@
+# Versioning
+
+Placeholder: versioning strategies.

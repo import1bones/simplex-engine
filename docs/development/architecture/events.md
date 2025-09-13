@@ -1,0 +1,3 @@
+# Events
+
+Placeholder: events architecture.

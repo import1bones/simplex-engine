@@ -1,0 +1,3 @@
+# Redundancy
+
+Placeholder: redundancy patterns.

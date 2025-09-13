@@ -1,0 +1,3 @@
+# Hardware
+
+Placeholder: hardware research.

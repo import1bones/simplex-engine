@@ -1,0 +1,3 @@
+# Culling
+
+Placeholder: culling techniques.

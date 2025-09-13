@@ -1,0 +1,3 @@
+# Pathfinding
+
+Placeholder: pathfinding algorithms.

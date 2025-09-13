@@ -1,0 +1,3 @@
+# Lighting
+
+Placeholder: lighting math.

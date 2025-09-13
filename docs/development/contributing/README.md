@@ -1,0 +1,3 @@
+# Contributing
+
+Placeholder: contributing guidelines.

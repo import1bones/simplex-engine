@@ -1,0 +1,3 @@
+# Statistics
+
+Placeholder: statistics notes.

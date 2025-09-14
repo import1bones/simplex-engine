@@ -18,6 +18,7 @@ pipeline to drive input.
 
 from simplex.ecs.ecs import System
 from simplex.utils.logger import log
+import math
 
 # Try to import InputSystem and EventSystem to use the unified pipeline
 try:
@@ -37,6 +38,11 @@ class FirstPersonController(System):
         self.event_system = event_system
         self.engine = engine
         self.speed = speed
+        # Mouse look state (degrees)
+        self.yaw = 0.0
+        self.pitch = 0.0
+        self.mouse_sensitivity = 0.15
+        self._mouse_listener_registered = False
         # controller requires position and velocity to operate
         self.required_components = ["position", "velocity"]
 
@@ -119,6 +125,20 @@ class FirstPersonController(System):
         log("PlayerController: InputSystem implementation not available in project", level="ERROR")
         return None
 
+    def _ensure_mouse_listener(self):
+        """Ensure the controller is registered to receive mouse events from the engine EventSystem."""
+        events = self._ensure_event_system()
+        if events is None:
+            return None
+        if not getattr(self, '_mouse_listener_registered', False):
+            try:
+                events.register('mouse', self._on_mouse)
+                self._mouse_listener_registered = True
+                log("PlayerController: registered mouse listener", level="DEBUG")
+            except Exception:
+                pass
+        return events
+
     def _process_entities(self, entities):
         # Prefer the engine's InputSystem (unified pipeline). Do NOT query pygame here.
         input_sys = None
@@ -137,6 +157,12 @@ class FirstPersonController(System):
             log("PlayerController: InputSystem has no input_state; skipping", level="DEBUG")
             return
 
+        # Ensure mouse listener is attached so mouse deltas update yaw/pitch
+        try:
+            self._ensure_mouse_listener()
+        except Exception:
+            pass
+
         for entity in entities:
             pos = entity.get_component("position")
             vel = entity.get_component("velocity")
@@ -144,7 +170,7 @@ class FirstPersonController(System):
             if not pos or not vel:
                 continue
 
-            # Simple movement in X/Z plane and space for up
+            # Simple movement in local camera-relative X/Z plane and space for up
             dx = 0.0
             dz = 0.0
             dy = 0.0
@@ -161,11 +187,23 @@ class FirstPersonController(System):
             if input_state.get('SPACE') or input_state.get('JUMP'):
                 dy += 1
 
-            # Normalize movement (simple) and apply speed
+            # Transform input (dx,dz) by current yaw to move relative to view
             if dx != 0 or dz != 0 or dy != 0:
-                mag = (dx * dx + dy * dy + dz * dz) ** 0.5
+                # compute forward and right vectors from yaw
+                yaw_rad = math.radians(self.yaw)
+                forward_x = math.sin(yaw_rad)
+                forward_z = math.cos(yaw_rad)
+                right_x = math.cos(yaw_rad)
+                right_z = -math.sin(yaw_rad)
+
+                # combine
+                move_x = forward_x * dz + right_x * dx
+                move_z = forward_z * dz + right_z * dx
+                move_y = dy
+
+                mag = (move_x * move_x + move_y * move_y + move_z * move_z) ** 0.5
                 if mag != 0:
-                    ndx, ndy, ndz = dx / mag, dy / mag, dz / mag
+                    ndx, ndy, ndz = move_x / mag, move_y / mag, move_z / mag
                 else:
                     ndx, ndy, ndz = 0.0, 0.0, 0.0
 
@@ -176,9 +214,43 @@ class FirstPersonController(System):
 
             # Update camera follow object if present on engine
             try:
-                if self.engine and hasattr(self.engine, "camera_follow"):
+                if self.engine:
+                    # ensure camera_follow exists
+                    if not hasattr(self.engine, 'camera_follow') or self.engine.camera_follow is None:
+                        # lightweight camera object
+                        class _Cam:
+                            def __init__(self):
+                                self.position = (0, 0, 0)
+                                self.yaw = 0.0
+                                self.pitch = 0.0
+                        self.engine.camera_follow = _Cam()
                     cam = self.engine.camera_follow
-                    # set camera position a bit above player
+                    # set camera position a bit above player and push orientation
                     cam.position = (pos.x, pos.y + 1.6, pos.z + 4)
+                    cam.yaw = self.yaw
+                    cam.pitch = self.pitch
             except Exception as e:
                 log(f"PlayerController: failed to update camera: {e}", level="DEBUG")
+
+    def _on_mouse(self, event):
+        """Handle mouse motion events forwarded via EventSystem. Expects a dict with 'rel'."""
+        try:
+            rel = None
+            if isinstance(event, dict):
+                rel = event.get('rel')
+            else:
+                # pygame Event-like object
+                rel = getattr(event, 'rel', None)
+            if not rel:
+                return
+            dx, dy = rel[0], rel[1]
+            # Update yaw/pitch (invert Y so moving mouse up looks up)
+            self.yaw += dx * self.mouse_sensitivity
+            self.pitch -= dy * self.mouse_sensitivity
+            # clamp pitch to avoid gimbal
+            if self.pitch > 89.0:
+                self.pitch = 89.0
+            if self.pitch < -89.0:
+                self.pitch = -89.0
+        except Exception:
+            pass

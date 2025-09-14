@@ -1,6 +1,6 @@
-"""Player demo: spawn a player entity and attach camera follow; use WASD input.
-
-Run this demo and press WASD/SPACE to move. Camera follows player.
+#!/usr/bin/env python3
+"""Minimal Minecraft-like run script for manual playtesting.
+Spawns player, sets camera, streams few chunks, runs a short loop rendering frames.
 """
 
 import sys
@@ -13,20 +13,24 @@ from simplex.engine import Engine
 
 
 def main():
-    engine = Engine()
+    eng = Engine()
 
-    player = engine.spawn_player(position=(8, 8, 8))
-    # Ensure a chunk around player exists
-    if hasattr(engine, 'chunk_manager') and engine.chunk_manager is not None:
-        engine.chunk_manager.ensure_area_loaded((0,0,0), radius=1)
+    # Spawn player and set camera
+    player = eng.spawn_player('Player', position=(0, 2, 0))
+    if player:
+        eng.set_camera(eng.camera_follow)
 
-    try:
-        print("Player demo: move with WASD, Space to go up. Running 200 frames or exit with Ctrl-C")
-        for i in range(200):
-            engine.update()
-            time.sleep(0.02)
-    finally:
-        engine.shutdown()
+    # Spawn some nearby chunks
+    for x in range(-1, 2):
+        for z in range(-1, 2):
+            eng.spawn_chunk(position=(x * 16, 0, z * 16))
+
+    # Run a few update/render cycles
+    for i in range(60):
+        eng.update(1.0 / 60.0)
+        time.sleep(1.0 / 60.0)
+
+    eng.shutdown()
 
 
 if __name__ == '__main__':

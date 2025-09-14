@@ -16,6 +16,7 @@ except ImportError:
     gl = None
     glu = None
     pygame = None
+import math
 
 try:
     from .gl_utils import create_vbo_for_mesh, delete_vbo
@@ -37,6 +38,9 @@ class OpenGLRenderer(RendererInterface):
         self.lights = []
         self.post_effects = []
         self.camera = None
+        # Capture mouse by default for first-person controls
+        self.capture_mouse = True
+        self._mouse_grabbed = False
 
     def initialize(self):
         if not gl or not pygame:
@@ -57,6 +61,19 @@ class OpenGLRenderer(RendererInterface):
 
             pygame.display.set_mode((self.width, self.height), DOUBLEBUF | OPENGL)
             pygame.display.set_caption(self.title)
+            # Enable relative mouse capture by default to support FPS-style controls
+            try:
+                if self.capture_mouse:
+                    pygame.event.set_grab(True)
+                    pygame.mouse.set_visible(False)
+                    # center mouse
+                    try:
+                        pygame.mouse.set_pos((self.width // 2, self.height // 2))
+                    except Exception:
+                        pass
+                    self._mouse_grabbed = True
+            except Exception:
+                pass
             gl.glEnable(gl.GL_DEPTH_TEST)
             gl.glClearColor(0.1, 0.1, 0.1, 1.0)
             self.initialized = True
@@ -75,6 +92,27 @@ class OpenGLRenderer(RendererInterface):
                         self.engine._process_pending_mesh_uploads()
                     except Exception:
                         pass
+
+                # Additionally, register to engine events to handle mesh_generated directly
+                try:
+                    if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
+                        try:
+                            # Ensure idempotent registration: unregister any existing listener first
+                            try:
+                                self.engine.events.unregister('mesh_generated', self._on_mesh_generated)
+                            except Exception:
+                                pass
+                            # Register a renderer-side listener for lower-latency VBO uploads
+                            self.engine.events.register('mesh_generated', self._on_mesh_generated)
+                            # Track that we've registered so shutdown can unregister
+                            try:
+                                self._registered_mesh_listener = True
+                            except Exception:
+                                pass
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
             except Exception:
                 pass
 
@@ -119,10 +157,28 @@ class OpenGLRenderer(RendererInterface):
         glu.gluPerspective(70, aspect, 0.1, 1000.0)
         gl.glMatrixMode(gl.GL_MODELVIEW)
         gl.glLoadIdentity()
+        # Use oriented camera (yaw/pitch) when available; fall back to simple lookAt
         # Simple camera: move back to see the scene
         if self.camera and hasattr(self.camera, "position"):
             pos = self.camera.position
-            glu.gluLookAt(pos[0], pos[1], pos[2], 0, 0, 0, 0, 1, 0)
+            # camera may expose yaw/pitch in degrees
+            yaw = getattr(self.camera, 'yaw', 0.0)
+            pitch = getattr(self.camera, 'pitch', 0.0)
+            try:
+                yaw_rad = math.radians(yaw)
+                pitch_rad = math.radians(pitch)
+                # forward vector from spherical coordinates (yaw around Y, pitch around X)
+                fx = math.cos(pitch_rad) * math.sin(yaw_rad)
+                fy = math.sin(pitch_rad)
+                fz = math.cos(pitch_rad) * math.cos(yaw_rad)
+                look_dist = 100.0
+                tx = pos[0] + fx * look_dist
+                ty = pos[1] + fy * look_dist
+                tz = pos[2] + fz * look_dist
+                glu.gluLookAt(pos[0], pos[1], pos[2], tx, ty, tz, 0, 1, 0)
+            except Exception:
+                # fallback: look towards -Z
+                glu.gluLookAt(pos[0], pos[1], pos[2], pos[0], pos[1], pos[2] - 1, 0, 1, 0)
         else:
             glu.gluLookAt(5, 5, 10, 0, 0, 0, 0, 1, 0)  # Better default view
 
@@ -132,6 +188,75 @@ class OpenGLRenderer(RendererInterface):
         else:
             # Render a default test cube if no scene
             self._render_default_test_content()
+
+        # Poll pygame events and forward to engine event system for unified input
+        try:
+            if pygame:
+                for event in pygame.event.get():
+                    # Handle window close
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        return
+                    # Toggle mouse capture on ESC key
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                        try:
+                            # flip grab state
+                            if getattr(self, '_mouse_grabbed', False):
+                                pygame.event.set_grab(False)
+                                pygame.mouse.set_visible(True)
+                                self._mouse_grabbed = False
+                            else:
+                                pygame.event.set_grab(True)
+                                pygame.mouse.set_visible(False)
+                                try:
+                                    pygame.mouse.set_pos((self.width // 2, self.height // 2))
+                                except Exception:
+                                    pass
+                                self._mouse_grabbed = True
+                            # emit an event for other systems
+                            if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
+                                try:
+                                    self.engine.events.emit('mouse_capture_toggled', {'captured': self._mouse_grabbed})
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+                        # don't treat ESC as game movement input
+                        continue
+                    # Key events
+                    if event.type in (pygame.KEYDOWN, pygame.KEYUP):
+                        if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
+                            # Map keys to engine-agnostic names
+                            if event.key in [pygame.K_UP, pygame.K_w]:
+                                game_key = 'UP'
+                            elif event.key in [pygame.K_DOWN, pygame.K_s]:
+                                game_key = 'DOWN'
+                            elif event.key in [pygame.K_LEFT, pygame.K_a]:
+                                game_key = 'LEFT'
+                            elif event.key in [pygame.K_RIGHT, pygame.K_d]:
+                                game_key = 'RIGHT'
+                            elif event.key == pygame.K_SPACE:
+                                game_key = 'SPACE'
+                            else:
+                                game_key = None
+                            if game_key is not None:
+                                evt = type('Event', (), {})()
+                                evt.type = 'KEYDOWN' if event.type == pygame.KEYDOWN else 'KEYUP'
+                                evt.key = game_key
+                                try:
+                                    self.engine.events.emit('input', evt)
+                                except Exception:
+                                    pass
+                    # Mouse motion
+                    if event.type == pygame.MOUSEMOTION:
+                        if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
+                            mevt = {'type': 'MOUSEMOTION', 'rel': event.rel, 'pos': event.pos}
+                            try:
+                                self.engine.events.emit('mouse', mevt)
+                            except Exception:
+                                pass
+        except Exception:
+            pass
 
         pygame.display.flip()
         # Remove debug log to avoid spam
@@ -334,7 +459,69 @@ class OpenGLRenderer(RendererInterface):
                     delete_all_vbos()
         except Exception:
             pass
+        # Unregister renderer's event listener to avoid dangling references
+        try:
+            if hasattr(self, 'engine') and getattr(self, 'engine', None) and getattr(self.engine, 'events', None):
+                try:
+                    self.engine.events.unregister('mesh_generated', self._on_mesh_generated)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        # restore mouse state if we grabbed it
+        try:
+            if pygame and getattr(self, '_mouse_grabbed', False):
+                try:
+                    pygame.event.set_grab(False)
+                    pygame.mouse.set_visible(True)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         if pygame:
             pygame.quit()
         self.initialized = False
         log("OpenGLRenderer shutdown", level="INFO")
+
+    def _on_mesh_generated(self, event):
+        """Renderer-side handler for mesh_generated events. Attempts to upload immediately.
+
+        This provides lower-latency uploads when the OpenGL context is available. If upload
+        fails or no helpers are present, leaves the mesh queued for the engine to process.
+        """
+        try:
+            if not isinstance(event, dict):
+                return
+            mesh_comp = event.get('mesh')
+            entity = event.get('entity')
+            if not mesh_comp or getattr(mesh_comp, 'gpu', None) is not None:
+                return
+
+            # Prefer attached VBOManager
+            vm = getattr(self, 'vbo_manager', None) or (hasattr(self, 'engine') and getattr(self.engine, 'vbo_manager', None)) or None
+            if vm is not None:
+                try:
+                    handle = vm.create_vbo(mesh_comp.vertices, mesh_comp.colors)
+                    if handle:
+                        mesh_comp.gpu = handle
+                        log(f"OpenGLRenderer: Uploaded mesh for entity {getattr(entity, 'name', entity)} via VBOManager", level="DEBUG")
+                        return
+                except Exception as e:
+                    log(f"OpenGLRenderer: VBOManager upload failed: {e}", level="DEBUG")
+
+            # Fallback to engine-provided helpers or module-level helpers
+            helpers = None
+            if hasattr(self, 'engine') and getattr(self.engine, 'vbo_helpers', None):
+                helpers = getattr(self.engine, 'vbo_helpers')
+            elif create_vbo_for_mesh and delete_vbo:
+                helpers = {'create_vbo_for_mesh': create_vbo_for_mesh, 'delete_vbo': delete_vbo}
+
+            if helpers and helpers.get('create_vbo_for_mesh'):
+                try:
+                    mesh_comp.gpu = helpers['create_vbo_for_mesh'](mesh_comp.vertices, mesh_comp.colors)
+                    log(f"OpenGLRenderer: Uploaded mesh for entity {getattr(entity, 'name', entity)} via helpers", level="DEBUG")
+                    return
+                except Exception as e:
+                    log(f"OpenGLRenderer: helper upload failed: {e}", level="DEBUG")
+        except Exception as e:
+            log(f"OpenGLRenderer _on_mesh_generated error: {e}", level="DEBUG")

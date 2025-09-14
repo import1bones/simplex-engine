@@ -202,6 +202,12 @@ class Engine:
                         if getattr(self, 'vbo_manager', None) and hasattr(self.renderer, 'opengl_renderer'):
                             try:
                                 self.renderer.opengl_renderer.vbo_manager = self.vbo_manager
+                                # Process any pending uploads immediately now that a VBO manager is present
+                                try:
+                                    self._process_pending_mesh_uploads()
+                                    log("Engine: Processed pending mesh uploads after attaching VBO manager", level="DEBUG")
+                                except Exception:
+                                    pass
                             except Exception:
                                 pass
                     except Exception:
@@ -415,6 +421,18 @@ class Engine:
             self.audio.update(delta_time)
 
             # 6. Rendering (should be last)
+            # Sync camera_follow to renderer camera before rendering
+            try:
+                if getattr(self, 'camera_follow', None) is not None:
+                    try:
+                        # Prefer renderer API to set camera
+                        if hasattr(self.renderer, 'set_camera'):
+                            self.renderer.set_camera(self.camera_follow)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
             self.renderer.render()
 
             # 7. Hot-reload checks (development only)

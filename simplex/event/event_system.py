@@ -13,7 +13,7 @@ class EventSystem:
     - Register listeners with priority (higher runs first):
         events.register('input', listener, priority=10)
     - Register listeners for capture phase (run before bubble):
-        events.register('input', capture_listener, capture=True)
+        events.register('input', capture_listener, priority=10, capture=True)
     - Stop propagation by returning False from a listener:
         def stop_listener(data):
             ...
@@ -108,6 +108,23 @@ class EventSystem:
                         return
                 except Exception as e:
                     log(f"Error in event listener for {event_type}: {e}", level="ERROR")
+
+    def unregister(self, event_type: str, listener: Callable[[Any], None]) -> None:
+        """
+        Unregister a listener for a specific event type.
+        If the listener was registered multiple times, all matching entries are removed.
+        """
+        if event_type not in self._listeners:
+            return
+        try:
+            # Filter out all entries where the listener matches
+            self._listeners[event_type] = [entry for entry in self._listeners[event_type] if entry[1] is not listener]
+            # If no listeners remain for the event, remove the key
+            if not self._listeners[event_type]:
+                del self._listeners[event_type]
+            log(f"Listener unregistered for event: {event_type}", level="DEBUG")
+        except Exception as e:
+            log(f"Failed to unregister listener for {event_type}: {e}", level="DEBUG")
 
     def shutdown(self) -> None:
         """Clean shutdown of event system."""

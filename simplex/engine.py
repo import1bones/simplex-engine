@@ -13,6 +13,7 @@ from .audio.audio import Audio
 from .event.event_system import EventSystem
 from .config import Config
 from .input.input import Input
+from .scheduler.manager import SubsystemManager
 from .utils.logger import log
 
 
@@ -28,22 +29,32 @@ class Engine:
 
         # Phase 1: Core systems initialization (no dependencies)
         self.config = Config(config_path)
-        self.events = EventSystem()
 
-        # Phase 2: Primary subsystems (depend on core systems)
-        self.ecs = ECS(event_system=self.events)
-        self.resource_manager = ResourceManager()
+        # Create scheduler to manage subsystem factories
+        self.scheduler = SubsystemManager(self)
 
-        # Phase 3: Secondary subsystems (may depend on primary systems)
-        self.renderer = Renderer(
-            event_system=self.events, resource_manager=self.resource_manager
-        )
-        self.physics = Physics(event_system=self.events, ecs=self.ecs)
-        self.audio = Audio(
-            event_system=self.events, resource_manager=self.resource_manager
-        )
-        self.script_manager = ScriptManager(event_system=self.events, engine=self)
-        self.input = Input(backend="pygame", event_system=self.events)
+        # Register common subsystem factories (idempotent)
+        self.scheduler.register_factory('events', lambda eng: EventSystem(), requires=[])
+        self.scheduler.register_factory('ecs', lambda eng: ECS(event_system=getattr(eng, 'events', None) or EventSystem()), requires=['events'])
+        self.scheduler.register_factory('resource_manager', lambda eng: ResourceManager(), requires=[])
+        self.scheduler.register_factory('renderer', lambda eng: Renderer(event_system=getattr(eng, 'events', None) or EventSystem(), resource_manager=getattr(eng, 'resource_manager', None) or ResourceManager()), requires=['events','resource_manager'])
+        self.scheduler.register_factory('physics', lambda eng: Physics(event_system=getattr(eng, 'events', None) or EventSystem(), ecs=getattr(eng, 'ecs', None) or ECS()), requires=['events','ecs'])
+        self.scheduler.register_factory('audio', lambda eng: Audio(event_system=getattr(eng, 'events', None) or EventSystem(), resource_manager=getattr(eng, 'resource_manager', None) or ResourceManager()), requires=['events','resource_manager'])
+        self.scheduler.register_factory('script_manager', lambda eng: ScriptManager(event_system=getattr(eng, 'events', None) or EventSystem(), engine=eng), requires=['events'])
+        self.scheduler.register_factory('input', lambda eng: Input(backend='pygame', event_system=getattr(eng, 'events', None) or EventSystem()), requires=['events'])
+
+        # Initialize registered subsystems (will attach engine.events, engine.ecs, etc.)
+        self.scheduler.initialize_all()
+
+        # For backward compatibility if scheduler didn't create them, fall back to explicit creation
+        self.events = getattr(self, 'events', EventSystem())
+        self.ecs = getattr(self, 'ecs', ECS(event_system=self.events))
+        self.resource_manager = getattr(self, 'resource_manager', ResourceManager())
+        self.renderer = getattr(self, 'renderer', Renderer(event_system=self.events, resource_manager=self.resource_manager))
+        self.physics = getattr(self, 'physics', Physics(event_system=self.events, ecs=self.ecs))
+        self.audio = getattr(self, 'audio', Audio(event_system=self.events, resource_manager=self.resource_manager))
+        self.script_manager = getattr(self, 'script_manager', ScriptManager(event_system=self.events, engine=self))
+        self.input = getattr(self, 'input', Input(backend='pygame', event_system=self.events))
 
         # Phase 4: System integration and event wiring
         self._initialize_subsystems()
@@ -79,6 +90,16 @@ class Engine:
         self.ecs.add_system(collision_system)
         self.ecs.add_system(input_system)
         self.ecs.add_system(scoring_system)
+
+        # Register player controller (first-person)
+        try:
+            from simplex.ecs.player_system import FirstPersonController
+
+            player_ctrl = FirstPersonController(event_system=self.events, engine=self)
+            self.ecs.add_system(player_ctrl)
+            log("Engine: Player controller registered", level="INFO")
+        except Exception:
+            log("Engine: Player controller not available", level="DEBUG")
 
         # Register chunk systems for voxel world support (creates chunks and generates meshes)
         try:
@@ -419,3 +440,30 @@ class Engine:
     def is_initialized(self) -> bool:
         """Check if engine is properly initialized."""
         return self._initialized
+
+    camera_follow = None
+
+    def spawn_player(self, name: str = "Player", position=(0, 2, 0)):
+        """Spawn a simple player entity with position and velocity and set camera_follow."""
+        try:
+            from simplex.ecs.ecs import Entity
+            from simplex.ecs.components import PositionComponent, VelocityComponent
+
+            e = Entity(name)
+            pos = PositionComponent(*position)
+            vel = VelocityComponent(0.0, 0.0, 0.0)
+            e.add_component(pos)
+            e.add_component(vel)
+            self.ecs.add_entity(e)
+            # camera follow object is a lightweight container
+            class CamObj:
+                def __init__(self, position=(0,0,0)):
+                    self.position = position
+
+            cam = CamObj((position[0], position[1] + 1.6, position[2] + 4))
+            self.camera_follow = cam
+            log(f"Engine: Spawned player '{name}' at {position}", level="INFO")
+            return e
+        except Exception as exc:
+            log(f"Engine.spawn_player failed: {exc}", level="ERROR")
+            return None

@@ -27,27 +27,26 @@ def test_basic_initialization():
         # Try to initialize
         success = renderer.initialize()
 
-        if success:
-            log("✓ OpenGL renderer initialized successfully!", level="INFO")
+        # Use assertion rather than return to satisfy pytest expectations
+        assert success, "OpenGL renderer failed to initialize"
 
-            # Test basic rendering without content
-            for i in range(5):
-                renderer.render()
-                log(f"✓ Rendered frame {i + 1}", level="INFO")
+        log("✓ OpenGL renderer initialized successfully!", level="INFO")
 
-            renderer.shutdown()
-            log("✓ OpenGL renderer test completed successfully", level="INFO")
-            return True
-        else:
-            log("✗ OpenGL renderer failed to initialize", level="ERROR")
-            return False
+        # Test basic rendering without content
+        for i in range(5):
+            renderer.render()
+            log(f"✓ Rendered frame {i + 1}", level="INFO")
+
+        renderer.shutdown()
+        log("✓ OpenGL renderer test completed successfully", level="INFO")
 
     except Exception as e:
         log(f"✗ OpenGL renderer test failed with exception: {e}", level="ERROR")
         import traceback
 
         traceback.print_exc()
-        return False
+        # Fail the test explicitly
+        assert False, f"Exception during OpenGL basic initialization test: {e}"
 
 
 def test_scene_rendering():
@@ -58,9 +57,8 @@ def test_scene_rendering():
         # Create renderer
         renderer = OpenGLRenderer(width=800, height=600)
 
-        if not renderer.initialize():
-            log("✗ Failed to initialize renderer for scene test", level="ERROR")
-            return False
+        initialized = renderer.initialize()
+        assert initialized, "Failed to initialize renderer for scene test"
 
         # Create test scene with colorful cubes
         root = SceneNode("root")
@@ -82,14 +80,13 @@ def test_scene_rendering():
 
         log("✓ Scene rendering test completed successfully", level="INFO")
         renderer.shutdown()
-        return True
 
     except Exception as e:
         log(f"✗ Scene rendering test failed: {e}", level="ERROR")
         import traceback
 
         traceback.print_exc()
-        return False
+        assert False, f"Exception during OpenGL scene rendering test: {e}"
 
 
 def main():

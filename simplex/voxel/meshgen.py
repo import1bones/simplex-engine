@@ -102,6 +102,9 @@ def generate_greedy_mesh(chunk) -> Tuple[List[float], List[float]]:
             return 0 if v.is_air() else v.block_id
         return 0
 
+    # collect faces as tuples (face_key, quad_verts, color)
+    faces = []
+
     # For each principal axis (0=x,1=y,2=z)
     for d in range(3):
         u = (d + 1) % 3
@@ -201,28 +204,52 @@ def generate_greedy_mesh(chunk) -> Tuple[List[float], List[float]]:
                     else:
                         quad_verts = [c1, c0, c3, c2]
 
-                    # Emit two triangles
-                    # simple directional lighting based on axis d (0=x,1=y,2=z)
-                    if d == 1:
-                        # y axis: top (mval>0) brighter, bottom darker
-                        intensity = 1.0 if mval > 0 else 0.6
+                    # Determine face key mapping to match naive mesher ordering
+                    if d == 0:
+                        face_key = 'px' if mval > 0 else 'nx'
+                    elif d == 1:
+                        face_key = 'py' if mval > 0 else 'ny'
                     else:
-                        intensity = 0.8
+                        face_key = 'pz' if mval > 0 else 'nz'
 
-                    for tri in [(0, 1, 2), (0, 2, 3)]:
-                        for idx_tri in tri:
-                            vx, vy, vz = quad_verts[idx_tri]
-                            verts.extend([vx, vy, vz])
-                            r, g, b, a = color
-                            cols.extend([r * intensity, g * intensity, b * intensity, a])
+                    # store face (we will sort and flatten later to match naive ordering)
+                    faces.append((face_key, quad_verts, color, mval))
 
                     # Zero out mask for covered area
                     for jj in range(h):
                         for ii in range(w):
                             mask[(i + ii) + (j + jj) * du] = 0
 
-                    # advance
-                j += h
+                    # advance j by the height of the merged quad
+                    j += h
+                # advance i after finishing the column
                 i += 1
+
+    # Flatten faces in a deterministic order matching naive neighbor order
+    order = {'px': 0, 'nx': 1, 'py': 2, 'ny': 3, 'pz': 4, 'nz': 5}
+    # sort by face order then by centroid to have predictable ordering
+    def _centroid(quad):
+        qv = quad
+        cx = (qv[0][0] + qv[1][0] + qv[2][0] + qv[3][0]) / 4.0
+        cy = (qv[0][1] + qv[1][1] + qv[2][1] + qv[3][1]) / 4.0
+        cz = (qv[0][2] + qv[1][2] + qv[2][2] + qv[3][2]) / 4.0
+        return (cx, cy, cz)
+
+    faces.sort(key=lambda f: (order.get(f[0], 99), _centroid(f[1])))
+
+    # Now flatten using the same triangle ordering and intensity mapping as naive
+    for face_key, quad_verts, color, mval in faces:
+        if face_key == 'py':
+            intensity = 1.0
+        elif face_key == 'ny':
+            intensity = 0.6
+        else:
+            intensity = 0.8
+        for tri in [(0, 1, 2), (0, 2, 3)]:
+            for idx_tri in tri:
+                vx, vy, vz = quad_verts[idx_tri]
+                verts.extend([vx, vy, vz])
+                r, g, b, a = color
+                cols.extend([r * intensity, g * intensity, b * intensity, a])
 
     return verts, cols

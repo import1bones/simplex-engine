@@ -214,23 +214,27 @@ class SimpleRenderer(RendererInterface):
         try:
             if hasattr(self, "engine_events") and self.engine_events:
                 # Convert pygame key events to engine input events
+                # Map directional keys and action keys into engine-agnostic names
                 if event.key in [pygame.K_UP, pygame.K_w]:
-                    game_event = type("Event", (), {})()
-                    game_event.type = (
-                        "KEYDOWN" if event.type == pygame.KEYDOWN else "KEYUP"
-                    )
-                    game_event.key = "UP"
-                    self.engine_events.emit("input", game_event)
-                    log(
-                        f"Input event emitted: {game_event.type} {game_event.key}",
-                        level="INFO",
-                    )
+                    game_key = "UP"
                 elif event.key in [pygame.K_DOWN, pygame.K_s]:
+                    game_key = "DOWN"
+                elif event.key in [pygame.K_LEFT, pygame.K_a]:
+                    game_key = "LEFT"
+                elif event.key in [pygame.K_RIGHT, pygame.K_d]:
+                    game_key = "RIGHT"
+                elif event.key == pygame.K_SPACE:
+                    # Support both 'SPACE' and 'JUMP' names used elsewhere
+                    game_key = "SPACE"
+                else:
+                    game_key = None
+
+                if game_key is not None:
                     game_event = type("Event", (), {})()
                     game_event.type = (
                         "KEYDOWN" if event.type == pygame.KEYDOWN else "KEYUP"
                     )
-                    game_event.key = "DOWN"
+                    game_event.key = game_key
                     self.engine_events.emit("input", game_event)
                     log(
                         f"Input event emitted: {game_event.type} {game_event.key}",

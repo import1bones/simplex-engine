@@ -61,6 +61,23 @@ class OpenGLRenderer(RendererInterface):
             gl.glClearColor(0.1, 0.1, 0.1, 1.0)
             self.initialized = True
             log("OpenGLRenderer initialized", level="INFO")
+
+            # If engine provided vbo_manager, attach here and process pending uploads
+            try:
+                if hasattr(self, 'engine') and getattr(self.engine, 'vbo_manager', None):
+                    try:
+                        self.vbo_manager = self.engine.vbo_manager
+                    except Exception:
+                        pass
+                # Process any pending uploads queued on the engine
+                if hasattr(self, 'engine') and hasattr(self.engine, '_process_pending_mesh_uploads'):
+                    try:
+                        self.engine._process_pending_mesh_uploads()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
             return True
         except Exception as e:
             log(f"Failed to initialize OpenGL renderer: {e}", level="ERROR")

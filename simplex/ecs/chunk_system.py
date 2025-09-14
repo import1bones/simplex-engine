@@ -82,3 +82,10 @@ class ChunkMeshSystem(System):
                     f"ChunkMeshSystem: Generated mesh for chunk {chunk_comp.position} (verts={len(verts) // 3})",
                     level="INFO",
                 )
+
+                # Emit event so renderers or VBO managers can upload the mesh when context is available
+                try:
+                    if self.event_system:
+                        self.event_system.emit("mesh_generated", {"entity": entity, "mesh": mesh_comp})
+                except Exception:
+                    pass

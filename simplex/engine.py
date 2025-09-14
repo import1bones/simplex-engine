@@ -26,6 +26,8 @@ class Engine:
     def __init__(self, config_path: str = "examples/config.toml"):
         self._running = False
         self._initialized = False
+        # pending mesh uploads (entity, mesh_comp) queued until VBO manager/context ready
+        self._pending_mesh_uploads = []
 
         # Phase 1: Core systems initialization (no dependencies)
         self.config = Config(config_path)
@@ -222,6 +224,9 @@ class Engine:
         # Input event forwarding
         self.events.register("input", self._handle_input_event)
 
+        # Mesh generated events: attempt GPU upload via VBO manager when available
+        self.events.register("mesh_generated", self._handle_mesh_generated)
+
         # Physics collision events
         self.events.register("physics_collision", self._handle_physics_collision)
 
@@ -282,6 +287,60 @@ class Engine:
             system_name = event.get("system", "Unknown")
             error = event.get("error", "Unknown error")
             log(f"System Error in {system_name}: {error}", level="ERROR")
+
+    def _handle_mesh_generated(self, event):
+        """Attempt to upload a mesh to GPU when a mesh is generated.
+
+        If a VBO manager is available and renderer/context is ready, upload
+        immediately and attach the GPU handle to the MeshComponent. Otherwise
+        queue the mesh for later upload.
+        """
+        try:
+            if not isinstance(event, dict):
+                return
+            mesh_comp = event.get("mesh")
+            entity = event.get("entity")
+            if not mesh_comp:
+                return
+
+            # Try immediate upload via vbo_manager
+            vm = getattr(self, 'vbo_manager', None) or getattr(self.renderer, 'vbo_manager', None) or None
+            if vm is not None:
+                try:
+                    handle = vm.create_vbo(mesh_comp.vertices, mesh_comp.colors)
+                    if handle:
+                        mesh_comp.gpu = handle
+                        # log successful upload
+                        log(f"Engine: Uploaded mesh for entity {getattr(entity, 'name', entity)} to GPU", level="DEBUG")
+                        return
+                except Exception as e:
+                    log(f"Engine: VBO upload failed: {e}", level="DEBUG")
+
+            # Not uploaded: queue for later processing
+            self._pending_mesh_uploads.append((entity, mesh_comp))
+            log("Engine: Queued mesh for later GPU upload", level="DEBUG")
+        except Exception as e:
+            log(f"Engine: mesh_generated handler error: {e}", level="DEBUG")
+
+    def _process_pending_mesh_uploads(self):
+        """Process any queued mesh uploads if a VBO manager becomes available."""
+        if not self._pending_mesh_uploads:
+            return
+        vm = getattr(self, 'vbo_manager', None) or getattr(self.renderer, 'vbo_manager', None) or None
+        if vm is None:
+            return
+        remaining = []
+        for entity, mesh_comp in list(self._pending_mesh_uploads):
+            try:
+                handle = vm.create_vbo(mesh_comp.vertices, mesh_comp.colors)
+                if handle:
+                    mesh_comp.gpu = handle
+                    log(f"Engine: Uploaded queued mesh for entity {getattr(entity, 'name', entity)} to GPU", level="DEBUG")
+                else:
+                    remaining.append((entity, mesh_comp))
+            except Exception:
+                remaining.append((entity, mesh_comp))
+        self._pending_mesh_uploads = remaining
 
     def _setup_hot_reloading(self, config_path):
         """Set up hot-reloading features if available."""
@@ -363,6 +422,9 @@ class Engine:
                 self.resource_hot_reloader.run_once()
             if hasattr(self, "config_hot_reloader"):
                 self.config_hot_reloader.run_once()
+
+            # Process any pending mesh uploads after main update
+            self._process_pending_mesh_uploads()
 
         except Exception as e:
             log(f"Engine update error: {e}", level="ERROR")

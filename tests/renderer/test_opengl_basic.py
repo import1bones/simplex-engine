@@ -116,10 +116,8 @@ def main():
 
     if passed == total:
         log("🎉 All tests PASSED!", level="INFO")
-        return True
     else:
         log("❌ Some tests FAILED!", level="ERROR")
-        return False
 
 
 if __name__ == "__main__":

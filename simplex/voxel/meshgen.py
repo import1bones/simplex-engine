@@ -61,6 +61,13 @@ def generate_naive_mesh(chunk) -> Tuple[List[float], List[float]]:
                     # neighbor out of bounds is treated as air
                     # emit quad for this face
                     quad = _FACE_DELTAS[face_key][0]
+                    # simple face-based lighting: top faces brighter, bottom darker, sides intermediate
+                    if face_key == "py":
+                        intensity = 1.0
+                    elif face_key == "ny":
+                        intensity = 0.6
+                    else:
+                        intensity = 0.8
                     for tri in _TRI_IDX:
                         for idx in tri:
                             ox, oy, oz = quad[idx]
@@ -68,7 +75,9 @@ def generate_naive_mesh(chunk) -> Tuple[List[float], List[float]]:
                             vy = y + oy
                             vz = z + oz
                             verts.extend([vx, vy, vz])
-                            cols.extend(list(color))
+                            # apply intensity to rgb, keep alpha
+                            r, g, b, a = color
+                            cols.extend([r * intensity, g * intensity, b * intensity, a])
 
     return verts, cols
 
@@ -193,11 +202,19 @@ def generate_greedy_mesh(chunk) -> Tuple[List[float], List[float]]:
                         quad_verts = [c1, c0, c3, c2]
 
                     # Emit two triangles
+                    # simple directional lighting based on axis d (0=x,1=y,2=z)
+                    if d == 1:
+                        # y axis: top (mval>0) brighter, bottom darker
+                        intensity = 1.0 if mval > 0 else 0.6
+                    else:
+                        intensity = 0.8
+
                     for tri in [(0, 1, 2), (0, 2, 3)]:
                         for idx_tri in tri:
                             vx, vy, vz = quad_verts[idx_tri]
                             verts.extend([vx, vy, vz])
-                            cols.extend(list(color))
+                            r, g, b, a = color
+                            cols.extend([r * intensity, g * intensity, b * intensity, a])
 
                     # Zero out mask for covered area
                     for jj in range(h):
@@ -205,7 +222,7 @@ def generate_greedy_mesh(chunk) -> Tuple[List[float], List[float]]:
                             mask[(i + ii) + (j + jj) * du] = 0
 
                     # advance
-                    j += h
+                j += h
                 i += 1
 
     return verts, cols

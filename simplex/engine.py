@@ -105,6 +105,29 @@ class Engine:
         if physics_config.get("enabled", True):
             self.physics.initialize(physics_config)
 
+        # Expose ECS to renderer so renderer backends can draw ECS-attached meshes
+        try:
+            # Renderer may choose to read self.renderer.ecs when rendering
+            self.renderer.ecs = self.ecs
+            # If OpenGL renderer exists, also attach ECS reference there
+            if hasattr(self.renderer, "opengl_renderer"):
+                try:
+                    self.renderer.opengl_renderer.ecs = self.ecs
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Optional: ChunkManager for streaming and LRU cache
+        try:
+            from simplex.world.chunk_manager import ChunkManager
+
+            self.chunk_manager = ChunkManager(self.ecs, event_system=self.events, chunk_size=(16,16,16), cache_size=64)
+            log("Engine: ChunkManager initialized", level="INFO")
+        except Exception:
+            self.chunk_manager = None
+            log("Engine: ChunkManager not available", level="DEBUG")
+
     def _setup_event_handlers(self):
         """Set up event handlers for cross-system communication."""
         # Input event forwarding
@@ -330,6 +353,62 @@ class Engine:
         finally:
             self._initialized = False
             log("Engine shutdown complete", level="INFO")
+
+    def spawn_chunk(self, position=(0, 0, 0), size=(16, 16, 16)):
+        """Convenience method: create a chunk entity and add it to ECS.
+
+        Returns the created Entity instance.
+        """
+        try:
+            from simplex.ecs.ecs import Entity
+            from simplex.ecs.components import ChunkComponent
+
+            # Prefer using ChunkManager if available
+            if hasattr(self, "chunk_manager") and self.chunk_manager is not None:
+                ent = self.chunk_manager.create_chunk(tuple(position))
+                if ent:
+                    log(f"Engine: Spawned chunk via ChunkManager at {position}", level="INFO")
+                    return ent
+
+            e = Entity(f"chunk_{position[0]}_{position[1]}_{position[2]}")
+            chunk_comp = ChunkComponent(position=tuple(position), size=tuple(size))
+            e.add_component(chunk_comp)
+            self.ecs.add_entity(e)
+            log(f"Engine: Spawned chunk entity at {position}", level="INFO")
+            return e
+        except Exception as exc:
+            log(f"Engine.spawn_chunk failed: {exc}", level="ERROR")
+            return None
+
+    def set_camera(self, camera):
+        """Attach a camera object to the renderer. Supports OpenGL backend and debug UI.
+
+        The camera should expose a `position` attribute (tuple) and optional `target`.
+        """
+        try:
+            # Prefer OpenGL renderer if available
+            if hasattr(self.renderer, "opengl_renderer") and getattr(self.renderer, "opengl_renderer") is not None:
+                try:
+                    self.renderer.opengl_renderer.set_camera(camera)
+                    log("Engine: Camera set on OpenGL renderer", level="INFO")
+                    return True
+                except Exception as e:
+                    log(f"Engine: Failed to set camera on opengl_renderer: {e}", level="WARNING")
+
+            # Fallback: if renderer exposes set_camera, call it
+            if hasattr(self.renderer, "set_camera"):
+                try:
+                    self.renderer.set_camera(camera)
+                    log("Engine: Camera set on renderer", level="INFO")
+                    return True
+                except Exception as e:
+                    log(f"Engine: Failed to set camera on renderer: {e}", level="WARNING")
+
+            log("Engine: No renderer camera API available", level="WARNING")
+            return False
+        except Exception as exc:
+            log(f"Engine.set_camera error: {exc}", level="ERROR")
+            return False
 
     @property
     def is_running(self) -> bool:

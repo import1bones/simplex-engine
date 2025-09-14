@@ -43,6 +43,35 @@ class Engine:
         self.scheduler.register_factory('script_manager', lambda eng: ScriptManager(event_system=getattr(eng, 'events', None) or EventSystem(), engine=eng), requires=['events'])
         self.scheduler.register_factory('input', lambda eng: Input(backend='pygame', event_system=getattr(eng, 'events', None) or EventSystem()), requires=['events'])
 
+        # Register optional subsystems: ChunkManager (world streaming) and VBO helpers
+        def _make_chunk_manager(eng):
+            try:
+                from simplex.world.chunk_manager import ChunkManager
+                return ChunkManager(eng.ecs, event_system=getattr(eng, 'events', None), chunk_size=(16,16,16), cache_size=64)
+            except Exception:
+                return None
+
+        def _make_vbo_helpers(eng):
+            try:
+                from simplex.renderer.gl_utils import create_vbo_for_mesh, delete_vbo
+                return {'create_vbo_for_mesh': create_vbo_for_mesh, 'delete_vbo': delete_vbo}
+            except Exception:
+                return None
+
+        self.scheduler.register_factory('chunk_manager', _make_chunk_manager, requires=['ecs','events'])
+        self.scheduler.register_factory('vbo_helpers', _make_vbo_helpers, requires=['renderer'])
+
+        # VBOManager factory: depends on vbo_helpers (so renderer initialization must happen first)
+        def _make_vbo_manager(eng):
+            try:
+                from simplex.renderer.vbo_manager import VBOManager
+                helpers = getattr(eng, 'vbo_helpers', None) or {}
+                return VBOManager(helpers=helpers)
+            except Exception:
+                return None
+
+        self.scheduler.register_factory('vbo_manager', _make_vbo_manager, requires=['vbo_helpers'])
+
         # Initialize registered subsystems (will attach engine.events, engine.ecs, etc.)
         self.scheduler.initialize_all()
 
@@ -121,6 +150,26 @@ class Engine:
         if renderer_config.get("enabled", True):
             self.renderer.initialize(renderer_config)
 
+            # Ensure VBO helpers are available after renderer (OpenGL) initialization
+            try:
+                if getattr(self, 'vbo_helpers', None) is None:
+                    try:
+                        vh = self.scheduler.ensure('vbo_helpers')
+                        if vh:
+                            self.vbo_helpers = vh
+                            # also attach helpers to opengl renderer if present
+                            if hasattr(self.renderer, 'opengl_renderer'):
+                                try:
+                                    self.renderer.opengl_renderer.vbo_helpers = vh
+                                except Exception:
+                                    pass
+                            log("Engine: VBO helpers attached", level="INFO")
+                    except KeyError:
+                        # factory not registered or available; skip
+                        pass
+            except Exception:
+                pass
+
         # Initialize physics with config
         physics_config = self.config.get("physics", {})
         if physics_config.get("enabled", True):
@@ -134,19 +183,38 @@ class Engine:
             if hasattr(self.renderer, "opengl_renderer"):
                 try:
                     self.renderer.opengl_renderer.ecs = self.ecs
+                    # expose engine to opengl renderer for accessing vbo helpers
+                    try:
+                        self.renderer.opengl_renderer.engine = self
+                    except Exception:
+                        pass
+                    # attach vbo_manager to opengl renderer if available
+                    try:
+                        if getattr(self, 'vbo_manager', None) is None:
+                            try:
+                                vm = self.scheduler.ensure('vbo_manager')
+                                if vm:
+                                    self.vbo_manager = vm
+                            except Exception:
+                                vm = None
+                        if getattr(self, 'vbo_manager', None) and hasattr(self.renderer, 'opengl_renderer'):
+                            try:
+                                self.renderer.opengl_renderer.vbo_manager = self.vbo_manager
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
                 except Exception:
                     pass
         except Exception:
             pass
 
-        # Optional: ChunkManager for streaming and LRU cache
-        try:
-            from simplex.world.chunk_manager import ChunkManager
-
-            self.chunk_manager = ChunkManager(self.ecs, event_system=self.events, chunk_size=(16,16,16), cache_size=64)
-            log("Engine: ChunkManager initialized", level="INFO")
-        except Exception:
-            self.chunk_manager = None
+        # ChunkManager should be provided by the scheduler if available; preserve
+        # backward compatibility by leaving existing attribute if not created.
+        self.chunk_manager = getattr(self, 'chunk_manager', None)
+        if self.chunk_manager is not None:
+            log("Engine: ChunkManager initialized (from scheduler)", level="INFO")
+        else:
             log("Engine: ChunkManager not available", level="DEBUG")
 
     def _setup_event_handlers(self):

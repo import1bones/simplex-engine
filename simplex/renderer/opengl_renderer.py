@@ -143,12 +143,46 @@ class OpenGLRenderer(RendererInterface):
             )
             if mesh_comp and getattr(mesh_comp, "vertices", None):
                 # If GPU handle not present, attempt upload now (context guaranteed here)
-                if getattr(mesh_comp, "gpu", None) is None and create_vbo_for_mesh:
+                # Prefer engine-provided VBO helpers (registered via scheduler) if present
+                #                helpers = None
+                #                if hasattr(self, 'engine') and getattr(self.engine, 'vbo_helpers', None):
+                #                    helpers = getattr(self.engine, 'vbo_helpers')
+                #                elif create_vbo_for_mesh and delete_vbo:
+                #                    helpers = {'create_vbo_for_mesh': create_vbo_for_mesh, 'delete_vbo': delete_vbo}
+                #
+                #                if getattr(mesh_comp, "gpu", None) is None and helpers and helpers.get('create_vbo_for_mesh'):
+                #                    try:
+                #                        mesh_comp.gpu = helpers['create_vbo_for_mesh'](mesh_comp.vertices, mesh_comp.colors)
+                #                        log(f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count')})", level="DEBUG")
+                #                    except Exception as e:
+                #                        log(f"OpenGLRenderer: GPU upload failed: {e}", level="DEBUG")
+                #                self._draw_mesh(mesh_comp)
+                # Prefer an engine-provided VBOManager if attached
+                vm = None
+                if hasattr(self, 'vbo_manager') and self.vbo_manager is not None:
+                    vm = self.vbo_manager
+                elif hasattr(self, 'engine') and getattr(self.engine, 'vbo_manager', None):
+                    vm = getattr(self.engine, 'vbo_manager')
+
+                if getattr(mesh_comp, "gpu", None) is None and vm:
                     try:
-                        mesh_comp.gpu = create_vbo_for_mesh(mesh_comp.vertices, mesh_comp.colors)
-                        log(f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count')})", level="DEBUG")
+                        mesh_comp.gpu = vm.create_vbo(mesh_comp.vertices, mesh_comp.colors)
+                        log(f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count') if mesh_comp.gpu else 'N/A'})", level="DEBUG")
                     except Exception as e:
-                        log(f"OpenGLRenderer: GPU upload failed: {e}", level="DEBUG")
+                        log(f"OpenGLRenderer: GPU upload failed via VBOManager: {e}", level="DEBUG")
+                else:
+                    # Fallback to module-level helpers
+                    helpers = None
+                    if hasattr(self, 'engine') and getattr(self.engine, 'vbo_helpers', None):
+                        helpers = getattr(self.engine, 'vbo_helpers')
+                    elif create_vbo_for_mesh and delete_vbo:
+                        helpers = {'create_vbo_for_mesh': create_vbo_for_mesh, 'delete_vbo': delete_vbo}
+                    if getattr(mesh_comp, "gpu", None) is None and helpers and helpers.get('create_vbo_for_mesh'):
+                        try:
+                            mesh_comp.gpu = helpers['create_vbo_for_mesh'](mesh_comp.vertices, mesh_comp.colors)
+                            log(f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count')})", level="DEBUG")
+                        except Exception as e:
+                            log(f"OpenGLRenderer: GPU upload failed: {e}", level="DEBUG")
                 self._draw_mesh(mesh_comp)
 
         # For now, ignore transforms and just draw cubes for primitives named 'cube' or 'voxel'
@@ -266,9 +300,21 @@ class OpenGLRenderer(RendererInterface):
     def shutdown(self):
         # Clean up VBOs created via gl_utils
         try:
-            if 'delete_all_vbos' in globals():
-                from .gl_utils import delete_all_vbos
-                delete_all_vbos()
+            # Prefer VBOManager cleanup when attached to renderer
+            if hasattr(self, 'vbo_manager') and self.vbo_manager is not None:
+                try:
+                    self.vbo_manager.delete_all()
+                except Exception:
+                    pass
+            elif hasattr(self, 'engine') and getattr(self.engine, 'vbo_manager', None):
+                try:
+                    self.engine.vbo_manager.delete_all()
+                except Exception:
+                    pass
+            else:
+                if 'delete_all_vbos' in globals():
+                    from .gl_utils import delete_all_vbos
+                    delete_all_vbos()
         except Exception:
             pass
         if pygame:

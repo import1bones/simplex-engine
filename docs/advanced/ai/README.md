@@ -17,13 +17,26 @@ uv run simplex-mcp --check
 
 `--check` runs a smoke test (project status + headless world probe). **Do not** run bare `uv run simplex-mcp` in a terminal — it speaks JSON-RPC on stdin and is meant to be started by Cursor (or another MCP client).
 
+## Agent onboarding
+
+Read **AGENTS.md** at the repo root. MCP exposes the same content:
+
+- Tool: `agent_instructions`
+- Resource: `simplex://agents`
+
+Contributors: **CONTRIBUTING.md**, **GOOD_FIRST_ISSUES.md**.
+
 ## Tools
 
 | Tool | Purpose |
 |------|---------|
-| `project_status` | Git branch, dirty state, Python version, test count |
+| `agent_instructions` | Commands, MVP priorities, tool index |
+| `health_check` | Lint + pytest (pre-PR) |
+| `project_status` | Git branch, dirty state, test count |
 | `engine_capabilities` | Subsystems, demos, lint/test commands |
 | `list_demos` | Runnable example scripts |
+| `demo_instructions` | Run command + controls for one demo |
+| `good_first_issues` | Scoped contributor tasks |
 | `run_tests` | Execute pytest (optional path / extra args) |
 | `run_lint` | Run ruff on `simplex/` and `tests/` |
 | `world_probe` | Headless chunk load + ground height (no GPU) |
@@ -32,6 +45,9 @@ uv run simplex-mcp --check
 
 | URI | Content |
 |-----|---------|
+| `simplex://agents` | `AGENTS.md` |
+| `simplex://contributing` | `CONTRIBUTING.md` |
+| `simplex://good-first-issues` | `GOOD_FIRST_ISSUES.md` |
 | `simplex://docs/todo` | `docs/todo/todo.md` |
 | `simplex://config` | `examples/config.toml` |
 | `simplex://readme` | Project README |

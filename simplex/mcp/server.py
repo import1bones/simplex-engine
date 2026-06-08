@@ -11,9 +11,10 @@ from . import tools
 mcp = FastMCP(
     "simplex-engine",
     instructions=(
-        "MCP server for the simplex-engine Python game engine (ECS, voxels, OpenGL). "
-        "Use tools to inspect project status, run tests/lint, probe the voxel world "
-        "headlessly, and read project docs. Demos need a display except world_probe."
+        "MCP server for simplex-engine (Python ECS voxel game engine). "
+        "Read AGENTS.md via agent_instructions or simplex://agents. "
+        "Use health_check before PRs; world_probe for headless voxel state; "
+        "good_first_issues for contributor tasks. Demos need a display except world_probe."
     ),
 )
 
@@ -49,6 +50,30 @@ def run_lint() -> str:
 
 
 @mcp.tool()
+def agent_instructions() -> str:
+    """Agent onboarding: commands, MVP priorities, MCP tool list. See AGENTS.md."""
+    return json.dumps(tools.agent_instructions(), indent=2)
+
+
+@mcp.tool()
+def health_check() -> str:
+    """Pre-PR check: run ruff and full pytest suite."""
+    return json.dumps(tools.health_check(), indent=2)
+
+
+@mcp.tool()
+def good_first_issues() -> str:
+    """Scoped contributor tasks from GOOD_FIRST_ISSUES.md."""
+    return tools.good_first_issues()
+
+
+@mcp.tool()
+def demo_instructions(name: str = "minecraft_player") -> str:
+    """Run command and controls for a demo (minecraft_player, ping_pong_simple, etc.)."""
+    return json.dumps(tools.demo_instructions(name=name), indent=2)
+
+
+@mcp.tool()
 def world_probe(
     x: float = 0.0,
     y: float = 8.0,
@@ -60,6 +85,24 @@ def world_probe(
         tools.world_probe(x=x, y=y, z=z, radius=radius),
         indent=2,
     )
+
+
+@mcp.resource("simplex://agents")
+def resource_agents() -> str:
+    """AI agent guide (AGENTS.md)."""
+    return tools.read_resource("AGENTS.md")
+
+
+@mcp.resource("simplex://contributing")
+def resource_contributing() -> str:
+    """Contributor guide (CONTRIBUTING.md)."""
+    return tools.read_resource("CONTRIBUTING.md")
+
+
+@mcp.resource("simplex://good-first-issues")
+def resource_good_first_issues() -> str:
+    """Good first issues list."""
+    return tools.read_resource("GOOD_FIRST_ISSUES.md")
 
 
 @mcp.resource("simplex://docs/todo")

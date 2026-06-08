@@ -1,0 +1,13 @@
+---
+description: Voxel world, chunks, streaming, and collision
+globs: simplex/world/**,simplex/voxel/**,simplex/ecs/chunk*.py,simplex/ecs/voxel*.py,examples/minecraft-like/**
+alwaysApply: false
+---
+
+# Voxel world
+
+- Streaming: `ChunkStreamingSystem` — horizontal slice, Y locked to `stream_y_chunk=0`, X/Z hysteresis.
+- Mesh budget: `mesh_chunks_per_frame` in config — do not mesh all dirty chunks in one frame.
+- Collision: `VoxelCollisionSystem` after player movement; uses `world_query.py`.
+- Cross-chunk seams: meshgen needs neighbor chunk data (known gap).
+- Tests: `tests/world/`, `tests/voxel/`, `tests/test_chunk_streaming.py`, `tests/test_performance.py`.

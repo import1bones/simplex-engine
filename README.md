@@ -74,7 +74,7 @@ Simplex includes an MCP server so Cursor and other AI clients can run tests, rea
 
 ```bash
 uv sync
-uv run simplex-mcp          # stdio MCP server
+uv run simplex-mcp --check  # smoke test (Cursor starts the server via .cursor/mcp.json)
 ```
 
 Enable **simplex-engine** in Cursor MCP settings (config: `.cursor/mcp.json`). See [docs/advanced/ai/README.md](./docs/advanced/ai/README.md).

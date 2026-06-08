@@ -8,16 +8,14 @@ The repo includes `.cursor/mcp.json`. After `uv sync`, open **Cursor Settings â†
 
 Equivalent root-level config: `mcp.json`.
 
-## Run manually
+## Verify install
 
 ```bash
 uv sync
-uv run simplex-mcp
-# or
-uv run python -m simplex.mcp
+uv run simplex-mcp --check
 ```
 
-The server uses stdio transport (default for Cursor).
+`--check` runs a smoke test (project status + headless world probe). **Do not** run bare `uv run simplex-mcp` in a terminal â€” it speaks JSON-RPC on stdin and is meant to be started by Cursor (or another MCP client).
 
 ## Tools
 

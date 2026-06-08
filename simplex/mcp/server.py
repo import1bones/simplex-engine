@@ -90,7 +90,39 @@ def create_server() -> FastMCP:
     return mcp
 
 
+def smoke_check() -> int:
+    """Verify MCP tools work without starting the stdio protocol loop."""
+    status = tools.project_status()
+    probe = tools.world_probe()
+    print("simplex-mcp OK")
+    print(f"  root: {status['root']}")
+    print(f"  branch: {status.get('branch', 'unknown')}")
+    print(f"  tests: {status.get('test_count', '?')}")
+    print(f"  loaded_chunks: {probe['loaded_count']}")
+    return 0
+
+
 def main() -> None:
+    import sys
+
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print("Usage: simplex-mcp          # stdio MCP server (started by Cursor)")
+        print("       simplex-mcp --check  # smoke test, no stdio protocol")
+        return
+
+    if "--check" in sys.argv:
+        raise SystemExit(smoke_check())
+
+    # Stdio transport expects JSON-RPC from an MCP client, not a human terminal.
+    if sys.stdin.isatty():
+        print(
+            "simplex-mcp listens on stdin for MCP clients (Cursor), "
+            "not interactive terminal input."
+        )
+        print("  Smoke test:  uv run simplex-mcp --check")
+        print("  Enable in:   Cursor Settings → MCP → simplex-engine")
+        raise SystemExit(0)
+
     mcp.run()
 
 

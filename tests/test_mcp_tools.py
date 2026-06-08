@@ -1,7 +1,9 @@
 import json
 import unittest
+from unittest.mock import patch
 
 from simplex.mcp import tools
+from simplex.mcp.server import smoke_check
 
 
 class McpToolsTests(unittest.TestCase):
@@ -32,6 +34,10 @@ class McpToolsTests(unittest.TestCase):
     def test_read_resource_rejects_escape(self):
         with self.assertRaises(ValueError):
             tools.read_resource("../../etc/passwd")
+
+    def test_smoke_check_exits_zero(self):
+        with patch("builtins.print"):
+            self.assertEqual(smoke_check(), 0)
 
 
 if __name__ == "__main__":

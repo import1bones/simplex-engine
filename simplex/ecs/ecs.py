@@ -117,7 +117,7 @@ class ECS(ECSInterface):
             log(f"Entity {entity.name} already exists, replacing", level="WARNING")
             self.remove_entity(entity.name)
 
-        log(f"Adding entity: {entity.name}", level="INFO")
+        log(f"Adding entity: {entity.name}", level="DEBUG")
         self.entities.append(entity)
         self._entity_lookup[entity.name] = entity
 
@@ -136,7 +136,7 @@ class ECS(ECSInterface):
         if name in self._entity_lookup:
             entity = self._entity_lookup.pop(name)
             self.entities.remove(entity)
-            log(f"Removed entity: {name}", level="INFO")
+            log(f"Removed entity: {name}", level="DEBUG")
             return entity
         return None
 

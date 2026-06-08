@@ -135,6 +135,7 @@ class Engine:
         world_config = self.config.get("world", {})
         streaming_radius = int(world_config.get("streaming_radius", 1))
         horizontal_streaming = bool(world_config.get("horizontal_streaming", True))
+        stream_y_chunk = int(world_config.get("stream_y_chunk", 0))
         try:
             from simplex.ecs.voxel_collision_system import VoxelCollisionSystem
             from simplex.ecs.chunk_streaming_system import ChunkStreamingSystem
@@ -146,6 +147,7 @@ class Engine:
                     engine=self,
                     radius=streaming_radius,
                     horizontal_only=horizontal_streaming,
+                    stream_y_chunk=stream_y_chunk,
                 )
             )
             log("Engine: Voxel collision and chunk streaming registered", level="INFO")

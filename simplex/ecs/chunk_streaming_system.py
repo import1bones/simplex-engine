@@ -15,12 +15,16 @@ class ChunkStreamingSystem(System):
         engine=None,
         radius: int = 1,
         horizontal_only: bool = True,
+        stream_y_chunk: int = 0,
+        hysteresis: float = 4.0,
     ):
         super().__init__("chunk_streaming")
         self.event_system = event_system
         self.engine = engine
         self.radius = int(radius)
         self.horizontal_only = horizontal_only
+        self.stream_y_chunk = int(stream_y_chunk)
+        self.hysteresis = float(hysteresis)
         self.required_components = ["position"]
         self._last_center = None
 
@@ -42,11 +46,14 @@ class ChunkStreamingSystem(System):
             return
 
         sx, sy, sz = cm.chunk_size
-        center = (
-            math.floor(pos.x / sx),
-            math.floor(pos.y / sy),
-            math.floor(pos.z / sz),
-        )
+        if self.horizontal_only:
+            cy = self.stream_y_chunk
+        else:
+            cy = math.floor(pos.y / sy)
+
+        cx = self._stable_chunk_index(pos.x, sx, 0)
+        cz = self._stable_chunk_index(pos.z, sz, 2)
+        center = (cx, cy, cz)
 
         if center == self._last_center:
             return
@@ -60,3 +67,23 @@ class ChunkStreamingSystem(System):
             f"horizontal={self.horizontal_only} at {center}",
             level="DEBUG",
         )
+
+    def _stable_chunk_index(self, coord: float, size: int, axis: int) -> int:
+        """Floor to chunk index with hysteresis so border jitter does not reload."""
+        raw = math.floor(coord / size)
+        if self._last_center is None:
+            return raw
+
+        last = self._last_center[axis]
+        if raw == last:
+            return last
+
+        if raw > last:
+            boundary = (last + 1) * size
+            if coord < boundary + self.hysteresis:
+                return last
+        else:
+            boundary = last * size
+            if coord > boundary - self.hysteresis:
+                return last
+        return raw

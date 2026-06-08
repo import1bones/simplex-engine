@@ -1,0 +1,3 @@
+# Electromagnetics
+
+Placeholder: EM notes.

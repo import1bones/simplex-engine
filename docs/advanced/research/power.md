@@ -1,0 +1,3 @@
+# Power
+
+Placeholder: power research.

@@ -1,0 +1,3 @@
+# Authorization
+
+Placeholder: authorization notes.

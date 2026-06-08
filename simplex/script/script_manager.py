@@ -16,20 +16,22 @@ class ScriptManager(ScriptManagerInterface):
     Script manager for simplex-engine with event system integration.
     Handles script loading, hot-reloading, and plugin management.
     """
-    
-    def __init__(self, event_system=None, engine=None, script_dir: str = "examples/mvp/scripts"):
+
+    def __init__(
+        self, event_system=None, engine=None, script_dir: str = "examples/mvp/scripts"
+    ):
         self.event_system = event_system
         self.engine = engine  # Reference to main engine for script access
         self.script_dir = script_dir
         self._script_mtimes = {}
         self._plugins = []
         self._recent_errors = []  # Store recent script errors for debugging
-        
+
         # Event hooks: on_load, on_reload, on_error
         self._event_hooks = {"on_load": [], "on_reload": [], "on_error": []}
-        
+
         log("ScriptManager created", level="INFO")
-    
+
     def update(self, delta_time):
         """Update scripts - called every frame."""
         # This can be used for frame-based script updates
@@ -54,9 +56,11 @@ class ScriptManager(ScriptManagerInterface):
     def discover_scripts(self):
         """Return a list of .py script file paths in the script directory."""
         try:
-            return [os.path.join(self.script_dir, f)
-                    for f in os.listdir(self.script_dir)
-                    if f.endswith('.py')]
+            return [
+                os.path.join(self.script_dir, f)
+                for f in os.listdir(self.script_dir)
+                if f.endswith(".py")
+            ]
         except Exception as e:
             tb = traceback.format_exc()
             log(f"Script discovery error: {e}\n{tb}", level="ERROR")
@@ -71,7 +75,9 @@ class ScriptManager(ScriptManagerInterface):
                 last_mtime = self._script_mtimes.get(script_path, 0)
                 if mtime > last_mtime:
                     self._script_mtimes[script_path] = mtime
-                    spec = importlib.util.spec_from_file_location(os.path.basename(script_path)[:-3], script_path)
+                    spec = importlib.util.spec_from_file_location(
+                        os.path.basename(script_path)[:-3], script_path
+                    )
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
                     if hasattr(module, "run"):
@@ -91,17 +97,21 @@ class ScriptManager(ScriptManagerInterface):
                 self._emit("on_error", script_path, e)
                 log(f"Hot-reload error in {script_path}: {e}\n{tb}", level="ERROR")
                 self._recent_errors.append(("hot_reload", script_path, tb))
+
     """
     Script manager for simplex-engine MVP.
     Handles script execution and error management.
     """
+
     def execute(self) -> None:
         """
         Execute all scripts in the script directory (once, not hot-reload).
         """
         for script_path in self.discover_scripts():
             try:
-                spec = importlib.util.spec_from_file_location(os.path.basename(script_path)[:-3], script_path)
+                spec = importlib.util.spec_from_file_location(
+                    os.path.basename(script_path)[:-3], script_path
+                )
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 if hasattr(module, "run"):
@@ -120,7 +130,7 @@ class ScriptManager(ScriptManagerInterface):
                 log(f"Script execution error: {e}\n{tb}", level="ERROR")
                 self._recent_errors.append(("execution", script_path, tb))
                 self._emit("on_error", script_path, e)
-    
+
     def shutdown(self):
         """Clean shutdown of script manager."""
         self._plugins.clear()

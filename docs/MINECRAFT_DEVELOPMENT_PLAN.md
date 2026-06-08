@@ -1,5 +1,7 @@
 # Minecraft-like Game Development Plan for Simplex Engine
 
+> Part of the Design & Roadmap. This document outlines the prioritized plan to build a Minecraft-like voxel project on top of Simplex Engine. For an overview of design philosophies and broader roadmap, see `design-and-roadmap.md`.
+
 ## 🎯 Current Status Analysis (v0.0.1)
 
 ### ✅ **Existing Capabilities**

@@ -1,7 +1,9 @@
 """
 Audio system interface for simplex-engine.
 """
+
 from abc import ABC, abstractmethod
+
 
 class AudioInterface(ABC):
     @abstractmethod

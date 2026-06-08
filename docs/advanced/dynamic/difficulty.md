@@ -1,0 +1,3 @@
+# Difficulty
+
+Placeholder: difficulty scaling.

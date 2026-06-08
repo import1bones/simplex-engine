@@ -1,7 +1,9 @@
 """
 Simple configuration loader for engine settings.
 """
+
 import toml
+
 
 class Config:
     def __init__(self, path: str):

@@ -1,0 +1,3 @@
+# Batching
+
+Placeholder: batching strategies.

@@ -2,6 +2,7 @@
 Simple logger utility for developer visibility.
 Uses Python's built-in logging module for reliability and extensibility.
 """
+
 import logging
 
 _LOG_LEVELS = {
@@ -15,8 +16,9 @@ _LOG_LEVELS = {
 
 logging.basicConfig(
     format="[%(asctime)s] [%(levelname)s] [%(module)s.%(funcName)s] %(message)s",
-    level=logging.INFO
+    level=logging.INFO,
 )
+
 
 def log(message: str, level: str = "INFO"):
     """

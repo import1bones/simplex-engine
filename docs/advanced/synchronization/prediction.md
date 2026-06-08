@@ -1,0 +1,3 @@
+# Prediction
+
+Placeholder: prediction strategies.

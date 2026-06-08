@@ -1,0 +1,3 @@
+# Authentication
+
+Placeholder: auth strategies.

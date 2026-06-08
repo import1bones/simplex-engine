@@ -1,0 +1,3 @@
+# Plugins
+
+Placeholder: plugin system.

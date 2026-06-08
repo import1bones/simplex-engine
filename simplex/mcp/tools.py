@@ -193,26 +193,26 @@ def world_probe(
     }
 
 
-_DEMO_CONTROLS: dict[str, dict[str, str]] = {
+_DEMO_CONTROLS: dict[str, dict[str, str | bool]] = {
     "minecraft_player": {
         "run": "uv run python3 examples/minecraft-like/run_player.py",
         "controls": "WASD move, mouse look, Space jump, ESC toggle mouse capture",
-        "needs_display": "true",
+        "needs_display": True,
     },
     "minecraft_basic": {
         "run": "uv run python3 examples/minecraft-like/run.py",
         "controls": "none (renders 5 frames and exits)",
-        "needs_display": "true",
+        "needs_display": True,
     },
     "ping_pong_simple": {
         "run": "uv run python3 examples/ping_pong/run_simple.py",
         "controls": "W/S or UP/DOWN arrows; first to 5 points wins",
-        "needs_display": "true",
+        "needs_display": True,
     },
     "ping_pong_gui": {
         "run": "uv run python3 examples/ping_pong/main_gui.py",
         "controls": "W/S or arrows; F1-F4 debug when available",
-        "needs_display": "true",
+        "needs_display": True,
     },
 }
 

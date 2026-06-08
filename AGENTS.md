@@ -35,7 +35,7 @@ Enable **simplex-engine** in Cursor MCP (`.cursor/mcp.json`). Use tools before g
 | `good_first_issues` | Scoped contributor tasks |
 | `run_tests` / `run_lint` | CI commands |
 
-Resources: `simplex://agents`, `simplex://contributing`, `simplex://todo`
+Resources: `simplex://agents`, `simplex://contributing`, `simplex://good-first-issues`, `simplex://docs/todo`
 
 ## Architecture (where to edit)
 

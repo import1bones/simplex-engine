@@ -3,7 +3,6 @@ Engine interface for simplex-engine.
 Flexible and maintainable entry point for the engine core with proper subsystem coordination.
 """
 
-from typing import Optional, Dict, Any
 from .ecs.ecs import ECS
 from .renderer.renderer import Renderer
 from .physics.physics import Physics

@@ -1,7 +1,7 @@
 import pytest
 
 from simplex.voxel.chunk import Chunk
-from simplex.voxel.voxel import BLOCK_AIR, BLOCK_DIRT
+from simplex.voxel.voxel import BLOCK_DIRT
 
 
 def test_chunk_get_set_and_iter():

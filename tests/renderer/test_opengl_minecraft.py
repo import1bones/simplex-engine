@@ -174,7 +174,7 @@ def main():
         # Final performance report
         elapsed = time.time() - start_time
         avg_fps = frame_count / elapsed if elapsed > 0 else 0
-        log(f"✓ Minecraft world test completed:", level="INFO")
+        log("✓ Minecraft world test completed:", level="INFO")
         log(f"  Blocks rendered: {block_count}", level="INFO")
         log(f"  Frames rendered: {frame_count}", level="INFO")
         log(f"  Duration: {elapsed:.1f}s", level="INFO")

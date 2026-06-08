@@ -77,7 +77,6 @@ class CollisionSystem(System):
             return
 
         # Get entity dimensions
-        half_width = collision.width / 2
         half_height = collision.height / 2
 
         # Top/bottom boundaries with proper positioning

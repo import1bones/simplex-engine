@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1
+
+      - name: Install Python dependencies
+        run: uv sync
+
+      - name: Ruff
+        run: uv run ruff check simplex/ tests/
+
+      - name: Pytest
+        run: xvfb-run uv run pytest tests/ -q

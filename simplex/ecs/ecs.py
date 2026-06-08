@@ -5,7 +5,7 @@ Provides proper component management and system organization.
 
 from .interface import ECSInterface
 from simplex.utils.logger import log
-from typing import Dict, List, Set, Optional, Type
+from typing import Dict, List, Set, Optional
 
 
 class Component:
@@ -152,13 +152,6 @@ class ECS(ECSInterface):
                     self.event_system.emit(
                         "system_error", {"system": system.name, "error": str(e)}
                     )
-
-    def shutdown(self):
-        """Clean shutdown of ECS."""
-        self.systems.clear()
-        self.entities.clear()
-        self._entity_lookup.clear()
-        log("ECS shutdown", level="INFO")
 
     def get_entities_with(self, *component_names: str) -> List[Entity]:
         """Get entities that have all specified components."""

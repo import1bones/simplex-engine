@@ -4,7 +4,7 @@ from simplex.ecs.ecs import System
 from simplex.utils.logger import log
 from simplex.voxel.chunk import Chunk
 from simplex.voxel.meshgen import generate_naive_mesh
-from simplex.ecs.components import ChunkComponent, MeshComponent
+from simplex.ecs.components import MeshComponent
 
 
 class ChunkSystem(System):

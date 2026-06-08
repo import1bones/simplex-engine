@@ -95,7 +95,6 @@ class Renderer(RendererInterface):
     """
 
     def __init__(self, event_system=None, resource_manager=None):
-        from .material import Material, Shader
 
         self.event_system = event_system
         self.resource_manager = resource_manager
@@ -339,7 +338,7 @@ class Renderer(RendererInterface):
                 import pygame
 
                 pygame.quit()
-            except:
+            except Exception:
                 pass
 
         self._initialized = False

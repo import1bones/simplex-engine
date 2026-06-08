@@ -37,7 +37,7 @@ class TestSubsystemManager(unittest.TestCase):
         sched.register_factory('a', make_a, requires=[])
         sched.register_factory('b', make_b, requires=['a'])
 
-        b = sched.ensure('b')
+        sched.ensure('b')
         self.assertIn('a', sched.created())
         self.assertIn('b', sched.created())
         self.assertEqual(getattr(eng, 'a'), 'A')

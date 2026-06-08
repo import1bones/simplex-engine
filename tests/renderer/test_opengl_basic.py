@@ -13,7 +13,6 @@ from simplex.renderer.opengl_renderer import OpenGLRenderer
 from simplex.renderer.renderer import SceneNode
 from simplex.renderer.material import Material
 from simplex.utils.logger import log
-import pygame
 
 
 def test_basic_initialization():

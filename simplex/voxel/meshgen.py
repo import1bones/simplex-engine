@@ -7,7 +7,7 @@ unit tests and early renderer integration.
 """
 
 from typing import List, Tuple
-from .voxel import is_solid, get_block_color, BLOCK_AIR
+from .voxel import get_block_color
 
 
 # Cube faces with vertex offsets (each face is two triangles, 6 vertices)
@@ -170,8 +170,6 @@ def generate_greedy_mesh(chunk) -> Tuple[List[float], List[float]]:
                     base[u] = float(i)
                     base[v] = float(j)
 
-                    # Depending on sign, face is on + or - side of voxel
-                    sign = 1 if mval > 0 else -1
                     block_id = abs(mval)
                     color = get_block_color(block_id)
 

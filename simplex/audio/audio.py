@@ -102,7 +102,7 @@ class Audio(AudioInterface):
         if self._mixer:
             try:
                 self._mixer.quit()
-            except:
+            except Exception:
                 pass
 
         self.sounds.clear()

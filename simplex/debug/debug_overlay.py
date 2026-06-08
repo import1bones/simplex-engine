@@ -4,7 +4,7 @@ Debug overlay for displaying engine statistics and debug information.
 
 import pygame
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 
 class DebugOverlay:

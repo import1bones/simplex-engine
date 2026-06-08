@@ -4,7 +4,6 @@ Minimal ScriptManager implementation for MVP with proper dependency injection.
 
 import os
 import importlib.util
-import time
 import traceback
 
 from .interface import ScriptManagerInterface

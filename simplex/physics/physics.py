@@ -20,7 +20,6 @@ class Physics(PhysicsInterface):
     """
 
     def __init__(self, event_system=None, ecs=None):
-        from .body import RigidBody, SoftBody
 
         self.event_system = event_system
         self.ecs = ecs  # Reference to ECS for entity-based physics
@@ -155,7 +154,7 @@ class Physics(PhysicsInterface):
                 import pybullet as p
 
                 p.disconnect(self.physics_client)
-            except:
+            except Exception:
                 pass
 
         self._initialized = False

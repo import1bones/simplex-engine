@@ -191,8 +191,6 @@ class SimpleRenderer(RendererInterface):
     def _handle_debug_keys(self, event):
         """Handle debug key presses."""
         try:
-            key_name = pygame.key.name(event.key).upper()
-
             # Map pygame keys to debug system
             if event.key == pygame.K_F1:
                 self.dev_tools.handle_debug_input("F1")

@@ -26,7 +26,7 @@ The Simplex Engine includes a complete ping-pong game that demonstrates the engi
 ```
 examples/ping_pong/
 ├── main_gui.py        # Full-featured game with enhanced collision system
-├── test_simple.py     # Simplified version for testing and debugging
+├── run_simple.py      # Simplified version for quick debugging
 └── config.toml        # Game configuration settings
 ```
 
@@ -38,8 +38,8 @@ examples/ping_pong/
 # Navigate to engine directory
 cd simplex-engine
 
-# Run the simplified test version
-PYTHONPATH=/path/to/simplex-engine python3 examples/ping_pong/test_simple.py
+# Run the simplified demo version
+uv run python3 examples/ping_pong/run_simple.py
 
 # Or run the full-featured version
 PYTHONPATH=/path/to/simplex-engine python3 examples/ping_pong/main_gui.py

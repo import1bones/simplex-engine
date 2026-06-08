@@ -34,20 +34,24 @@ class ChunkSystem(System):
                             chunk.set_block_id(x, y, z, 1)  # dirt
                 chunk_comp.attach_chunk(chunk)
                 log(
-                    f"ChunkSystem: Created chunk at {chunk_comp.position}", level="INFO"
+                    f"ChunkSystem: Created chunk at {chunk_comp.position}", level="DEBUG"
                 )
 
 
 class ChunkMeshSystem(System):
     """System that generates meshes for dirty chunks and attaches MeshComponents."""
 
-    def __init__(self, event_system=None):
+    def __init__(self, event_system=None, max_chunks_per_frame: int = 2):
         super().__init__("chunk_mesh")
         self.event_system = event_system
+        self.max_chunks_per_frame = max(1, int(max_chunks_per_frame))
         self.required_components = ["chunk"]
 
     def _process_entities(self, entities):
+        meshed = 0
         for entity in entities:
+            if meshed >= self.max_chunks_per_frame:
+                break
             chunk_comp = entity.get_component("chunk")
             if chunk_comp and chunk_comp.has_chunk() and chunk_comp.dirty:
                 # Use greedy mesh generator for fewer vertices when available
@@ -78,9 +82,10 @@ class ChunkMeshSystem(System):
                 # GPU upload is handled by the renderer (context required). Leave mesh_comp.gpu unset.
 
                 chunk_comp.clear_dirty()
+                meshed += 1
                 log(
                     f"ChunkMeshSystem: Generated mesh for chunk {chunk_comp.position} (verts={len(verts) // 3})",
-                    level="INFO",
+                    level="DEBUG",
                 )
 
                 # Emit event so renderers or VBO managers can upload the mesh when context is available

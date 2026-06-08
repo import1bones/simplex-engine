@@ -38,6 +38,13 @@ class ChunkManagerTests(unittest.TestCase):
         loaded2 = set(self.cm.list_loaded())
         self.assertTrue(all(max(abs(x), abs(y), abs(z)) <= 0 for (x, y, z) in loaded2))
 
+    def test_horizontal_preload_limits_y_slices(self):
+        self.cm.cache_size = 20
+        self.cm.ensure_area_loaded((0, 0, 0), radius=1, horizontal_only=True)
+        loaded = set(self.cm.list_loaded())
+        self.assertEqual(len(loaded), 9)
+        self.assertTrue(all(y == 0 for (_, y, _) in loaded))
+
 
 if __name__ == "__main__":
     unittest.main()

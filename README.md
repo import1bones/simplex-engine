@@ -24,6 +24,7 @@ We believe a simplified engine (less code complexity, more functionality) will m
 - **2D Collision**: AABB collision for the ping-pong demo
 - **Subsystem Scheduler**: Dependency-ordered engine initialization
 - **Development Tools**: Debug overlay, logging, hot-reload hooks
+- **MCP Server**: AI-native tools (tests, lint, world probe, docs resources)
 
 ### Planned
 - **Infinite Worlds**: Player-driven chunk streaming
@@ -66,6 +67,17 @@ uv run python3 examples/ping_pong/main_gui.py
 ```
 
 Ping-pong controls: **W/S** or **arrow keys** for paddle, **F1–F4** debug keys when available.
+
+### AI-native support (MCP)
+
+Simplex includes an MCP server so Cursor and other AI clients can run tests, read docs, and probe the voxel world headlessly.
+
+```bash
+uv sync
+uv run simplex-mcp          # stdio MCP server
+```
+
+Enable **simplex-engine** in Cursor MCP settings (config: `.cursor/mcp.json`). See [docs/advanced/ai/README.md](./docs/advanced/ai/README.md).
 
 ## 📚 Documentation
 

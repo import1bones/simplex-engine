@@ -27,8 +27,8 @@ We believe a simplified engine (less code complexity, more functionality) will m
 - **MCP Server**: AI-native tools (tests, lint, world probe, docs resources)
 
 ### Planned
-- **Infinite Worlds**: Player-driven chunk streaming
-- **Voxel Physics**: Block-grid collision for terrain
+- **Block Interaction**: Place and break voxels
+- **Cross-Chunk Meshing**: Neighbor-aware face culling
 - **World Generation**: Noise terrain, biomes, and structures
 - **Multiplayer**: Network architecture for multiplayer voxel worlds
 - **Shader Pipeline**: Modern GL rendering (replace fixed-function path)
@@ -77,7 +77,7 @@ uv sync
 uv run simplex-mcp --check  # smoke test (Cursor starts the server via .cursor/mcp.json)
 ```
 
-Enable **simplex-engine** in Cursor MCP settings (config: `.cursor/mcp.json`). See [docs/advanced/ai/README.md](./docs/advanced/ai/README.md).
+Enable **simplex-engine** in Cursor MCP settings (config: `.cursor/mcp.json`). See [AGENTS.md](./AGENTS.md) and [docs/advanced/ai/README.md](./docs/advanced/ai/README.md).
 
 ## 📚 Documentation
 
@@ -99,7 +99,8 @@ Comprehensive documentation is available in the `docs/` directory:
 | **Understand ECS** | [Core Concepts](./docs/core-concepts/) |
 | **Find API details** | [API Reference](./docs/api/) |
 | **Optimize performance** | [Advanced Topics](./docs/advanced/) |
-| **Contribute code** | [Development Guide](./docs/development/) |
+| **Contribute code** | [CONTRIBUTING.md](./CONTRIBUTING.md) · [AGENTS.md](./AGENTS.md) |
+| **Pick a starter task** | [GOOD_FIRST_ISSUES.md](./GOOD_FIRST_ISSUES.md) |
 
 ## Architecture
 

@@ -1,0 +1,15 @@
+---
+description: Core simplex-engine conventions for all agent work
+alwaysApply: true
+---
+
+# simplex-engine
+
+Read **AGENTS.md** for commands, architecture map, and MVP priorities.
+
+- Python 3.13+, `uv sync`, tests in `tests/` only.
+- Minimal diffs; match existing patterns in `simplex/`.
+- Run `uv run ruff check simplex/ tests/` and `uv run pytest tests/ -q` before done.
+- Use MCP tools (`health_check`, `world_probe`) when enabled — do not guess project state.
+- No git commits unless the user requests them.
+- Chunk indices ≠ world blocks; chunk size is 16×16×16.

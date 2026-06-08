@@ -39,6 +39,24 @@ class McpToolsTests(unittest.TestCase):
         with patch("builtins.print"):
             self.assertEqual(smoke_check(), 0)
 
+    def test_agent_instructions(self):
+        info = tools.agent_instructions()
+        self.assertEqual(info["agents_md"], "AGENTS.md")
+        self.assertIn("health_check", info["mcp_tools"])
+
+    def test_demo_instructions_known_demo(self):
+        demo = tools.demo_instructions("minecraft_player")
+        self.assertIn("run", demo)
+        self.assertIn("WASD", demo["controls"])
+
+    def test_good_first_issues_content(self):
+        text = tools.good_first_issues()
+        self.assertIn("Block place", text)
+
+    def test_read_agents_md(self):
+        text = tools.read_resource("AGENTS.md")
+        self.assertIn("MCP", text)
+
 
 if __name__ == "__main__":
     unittest.main()

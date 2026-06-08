@@ -193,6 +193,90 @@ def world_probe(
     }
 
 
+_DEMO_CONTROLS: dict[str, dict[str, str]] = {
+    "minecraft_player": {
+        "run": "uv run python3 examples/minecraft-like/run_player.py",
+        "controls": "WASD move, mouse look, Space jump, ESC toggle mouse capture",
+        "needs_display": "true",
+    },
+    "minecraft_basic": {
+        "run": "uv run python3 examples/minecraft-like/run.py",
+        "controls": "none (renders 5 frames and exits)",
+        "needs_display": "true",
+    },
+    "ping_pong_simple": {
+        "run": "uv run python3 examples/ping_pong/run_simple.py",
+        "controls": "W/S or UP/DOWN arrows; first to 5 points wins",
+        "needs_display": "true",
+    },
+    "ping_pong_gui": {
+        "run": "uv run python3 examples/ping_pong/main_gui.py",
+        "controls": "W/S or arrows; F1-F4 debug when available",
+        "needs_display": "true",
+    },
+}
+
+
+def agent_instructions() -> dict[str, Any]:
+    """Summary for AI agents; full text in AGENTS.md."""
+    return {
+        "agents_md": "AGENTS.md",
+        "contributing_md": "CONTRIBUTING.md",
+        "good_first_issues_md": "GOOD_FIRST_ISSUES.md",
+        "quick_commands": {
+            "sync": "uv sync",
+            "test": "uv run pytest tests/ -q",
+            "lint": "uv run ruff check simplex/ tests/",
+            "mcp_check": "uv run simplex-mcp --check",
+            "voxel_demo": _DEMO_CONTROLS["minecraft_player"]["run"],
+        },
+        "mvp_priorities": [
+            "block place/break",
+            "cross-chunk face culling",
+            "voxel-only engine profile",
+        ],
+        "mcp_tools": [
+            "project_status",
+            "health_check",
+            "engine_capabilities",
+            "world_probe",
+            "demo_instructions",
+            "good_first_issues",
+            "run_tests",
+            "run_lint",
+        ],
+    }
+
+
+def good_first_issues() -> str:
+    """Return GOOD_FIRST_ISSUES.md contents."""
+    return read_resource("GOOD_FIRST_ISSUES.md")
+
+
+def demo_instructions(name: str = "minecraft_player") -> dict[str, Any]:
+    """Run command and controls for a named demo."""
+    demos = {d["name"]: d for d in list_demos()}
+    if name not in demos:
+        return {
+            "error": f"unknown demo: {name}",
+            "available": list(demos.keys()),
+        }
+    info = demos[name]
+    extra = _DEMO_CONTROLS.get(name, {})
+    return {**info, **extra}
+
+
+def health_check() -> dict[str, Any]:
+    """Run lint and a quick pytest for pre-PR validation."""
+    lint = run_lint()
+    tests = run_tests()
+    return {
+        "ready_for_pr": lint.get("success") and tests.get("success"),
+        "lint": lint,
+        "tests": tests,
+    }
+
+
 def read_resource(relative_path: str) -> str:
     """Read a text file from the repository."""
     path = (_REPO_ROOT / relative_path).resolve()

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "simplex-engine": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "simplex.mcp"]
+    }
+  }
+}

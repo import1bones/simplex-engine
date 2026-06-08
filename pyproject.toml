@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "logging>=0.4.9.6",
+    "mcp>=1.27.2",
     "numpy>=2.0.0",
     "pybullet>=3.2.7",
     "pygame>=2.6.1",
@@ -15,6 +16,9 @@ dependencies = [
     "ruff>=0.13.0",
     "toml>=0.10.2",
 ]
+
+[project.scripts]
+simplex-mcp = "simplex.mcp.server:main"
 
 [build-system]
 requires = ["hatchling"]

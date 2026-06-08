@@ -32,17 +32,19 @@ from simplex.engine import Engine
 def main():
     eng = Engine()
 
-    player = eng.spawn_player("Player", position=(0, 5, 0))
+    player = eng.spawn_player("Player", position=(0, 8, 0))
     if player:
         eng.set_camera(eng.camera_follow)
 
-    for x in range(-1, 2):
-        for z in range(-1, 2):
-            eng.spawn_chunk(position=(x, 0, z))
-
-    # Prime a few frames so chunk meshes are generated before the interactive loop.
-    for _ in range(3):
+    # Prime until chunk meshes are ready (budget spreads work across frames).
+    for _ in range(120):
         eng.update(1.0 / 60.0)
+        if not any(
+            (c := e.get_component("chunk")) and c.dirty
+            for e in eng.ecs.entities
+            if e.name.startswith("chunk_")
+        ):
+            break
 
     try:
         import pygame

@@ -145,16 +145,17 @@ class CollisionSystem(System):
 
         log(
             f"CollisionSystem: Collision between {entity_a.name} and {entity_b.name}",
-            level="INFO",
+            level="DEBUG",
         )
 
 
 class InputSystem(System):
     """System that processes input for entities with input components."""
 
-    def __init__(self, event_system=None):
+    def __init__(self, event_system=None, bounds=(800, 600)):
         super().__init__("input")
         self.event_system = event_system
+        self.bounds_width, self.bounds_height = bounds
         self.input_state = {}
         self.required_components = ["input", "velocity"]
 
@@ -162,12 +163,27 @@ class InputSystem(System):
         if self.event_system:
             self.event_system.register("input", self._handle_input_event)
 
+    def update(self, entities):
+        """Apply input using the full entity list so AI can locate the ball."""
+        filtered = self._filter_entities(entities)
+        if not filtered:
+            return
+        for entity in filtered:
+            input_comp = entity.get_component("input")
+            velocity_comp = entity.get_component("velocity")
+            if not input_comp or not velocity_comp:
+                continue
+            if input_comp.input_type == "player":
+                self._handle_player_input(entity, velocity_comp, input_comp)
+            elif input_comp.input_type == "ai":
+                self._handle_ai_input(entity, velocity_comp, input_comp, entities)
+
     def _handle_input_event(self, event):
         """Handle input events and store state."""
         if hasattr(event, "type") and hasattr(event, "key"):
             log(
                 f"InputSystem: Received input event - {event.type} {event.key}",
-                level="INFO",
+                level="DEBUG",
             )
             if event.type == "KEYDOWN":
                 self.input_state[event.key] = True
@@ -181,19 +197,6 @@ class InputSystem(System):
                     f"InputSystem: Key {event.key} released, state: {self.input_state}",
                     level="DEBUG",
                 )
-
-    def _process_entities(self, entities):
-        """Apply input to entities with input and velocity components."""
-        for entity in entities:
-            input_comp = entity.get_component("input")
-            velocity_comp = entity.get_component("velocity")
-
-            if input_comp and velocity_comp:
-                if input_comp.input_type == "player":
-                    self._handle_player_input(entity, velocity_comp, input_comp)
-                elif input_comp.input_type == "ai":
-                    # AI needs access to all entities to find the ball
-                    self._handle_ai_input(entity, velocity_comp, input_comp, entities)
 
     def _handle_player_input(self, entity, velocity_comp, input_comp):
         """Handle player input for movement."""
@@ -233,20 +236,16 @@ class InputSystem(System):
             ai_pos = entity.get_component("position")
 
             if ball_pos and ball_vel and ai_pos:
-                speed = (
-                    getattr(input_comp, "speed", 5.0) * 0.9
-                )  # AI slightly slower than player
-
-                # Only track ball if it's moving towards AI (positive X velocity)
-                if ball_vel.vx > 0:
+                speed = getattr(input_comp, "speed", 5.0) * 0.9
+                center_y = self.bounds_height / 2
+                on_ai_side = ball_pos.x >= self.bounds_width / 2
+                if ball_vel.vx > 0 or on_ai_side:
                     target_y = ball_pos.y
                 else:
-                    # When ball moving away, return to center
-                    target_y = 300  # Center of 600px height
+                    target_y = center_y
 
-                # Move towards target with some deadzone to prevent jittering
                 y_diff = target_y - ai_pos.y
-                if abs(y_diff) > 15:  # Deadzone
+                if abs(y_diff) > 8:
                     if y_diff > 0:
                         velocity_comp.vy = speed
                     else:
@@ -264,10 +263,6 @@ class ScoringSystem(System):
         self.required_components = [
             "position"
         ]  # Only need position to check for scoring
-
-        # Register for score events
-        if self.event_system:
-            self.event_system.register("score", self._handle_score_event)
 
     def _process_entities(self, entities):
         """Check for scoring conditions among ball entities."""
@@ -296,20 +291,14 @@ class ScoringSystem(System):
             velocity_comp.vx = -6 if scorer == "ai" else 6
             velocity_comp.vy = 4
 
-        # Emit score event
+        print(
+            f"[Score] {scorer.title()} scores! Current score: {self.score}"
+        )
         if self.event_system:
             self.event_system.emit(
                 "score", {"scorer": scorer, "score": self.score.copy()}
             )
-
-        log(f"ScoringSystem: {scorer} scores! Score: {self.score}", level="INFO")
-
-    def _handle_score_event(self, event):
-        """Handle score events for logging/display."""
-        if isinstance(event, dict) and "scorer" in event:
-            print(
-                f"[Score] {event['scorer'].title()} scores! Current score: {event.get('score', {})}"
-            )
+        log(f"ScoringSystem: {scorer} scores! Score: {self.score}", level="DEBUG")
 
     def _check_boundary_collision(self, entity):
         """Check and handle collision with world boundaries."""

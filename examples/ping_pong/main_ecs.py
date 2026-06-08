@@ -5,6 +5,11 @@ A refactored ping-pong game that properly uses simplex-engine's ECS subsystem
 for entity management, with proper component composition and system architecture.
 """
 
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 from simplex.engine import Engine
 from simplex.ecs.components import (
     PositionComponent,

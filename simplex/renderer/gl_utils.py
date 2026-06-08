@@ -8,6 +8,11 @@ to create typed buffers acceptable by glBufferData.
 from typing import Dict, Any, List
 
 try:
+    import numpy as np
+except ImportError:
+    np = None
+
+try:
     import OpenGL.GL as gl
     import ctypes
 except Exception:
@@ -26,23 +31,32 @@ def create_vbo_for_mesh(vertices: List[float], colors: List[float]) -> Dict[str,
     if not gl:
         raise RuntimeError("PyOpenGL not available")
 
-    # Convert to GLfloat arrays
     vert_count = len(vertices) // 3
-    # Create ctypes arrays from Python lists
-    GLfloatArrayType = (gl.GLfloat * len(vertices))
-    colorArrayType = (gl.GLfloat * len(colors))
-    vert_array = GLfloatArrayType(*vertices)
-    col_array = colorArrayType(*colors)
 
-    # Create VBO for vertices
+    if np is not None:
+        vert_array = np.asarray(vertices, dtype=np.float32)
+        col_array = np.asarray(colors, dtype=np.float32)
+        vert_bytes = vert_array.nbytes
+        col_bytes = col_array.nbytes
+        vert_ptr = vert_array
+        col_ptr = col_array
+    else:
+        GLfloatArrayType = gl.GLfloat * len(vertices)
+        colorArrayType = gl.GLfloat * len(colors)
+        vert_array = GLfloatArrayType(*vertices)
+        col_array = colorArrayType(*colors)
+        vert_bytes = ctypes.sizeof(vert_array)
+        col_bytes = ctypes.sizeof(col_array)
+        vert_ptr = vert_array
+        col_ptr = col_array
+
     vbo = gl.glGenBuffers(1)
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo)
-    gl.glBufferData(gl.GL_ARRAY_BUFFER, ctypes.sizeof(vert_array), vert_array, gl.GL_STATIC_DRAW)
+    gl.glBufferData(gl.GL_ARRAY_BUFFER, vert_bytes, vert_ptr, gl.GL_STATIC_DRAW)
 
-    # Create VBO for colors
     vbo_color = gl.glGenBuffers(1)
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo_color)
-    gl.glBufferData(gl.GL_ARRAY_BUFFER, ctypes.sizeof(col_array), col_array, gl.GL_STATIC_DRAW)
+    gl.glBufferData(gl.GL_ARRAY_BUFFER, col_bytes, col_ptr, gl.GL_STATIC_DRAW)
 
     # Unbind
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)

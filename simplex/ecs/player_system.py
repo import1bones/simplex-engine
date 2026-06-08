@@ -173,7 +173,6 @@ class FirstPersonController(System):
             # Simple movement in local camera-relative X/Z plane and space for up
             dx = 0.0
             dz = 0.0
-            dy = 0.0
 
             # InputSystem uses abstracted key names (e.g. 'UP','DOWN','LEFT','RIGHT','SPACE')
             if input_state.get('UP'):
@@ -184,11 +183,10 @@ class FirstPersonController(System):
                 dx -= 1
             if input_state.get('RIGHT'):
                 dx += 1
-            if input_state.get('SPACE') or input_state.get('JUMP'):
-                dy += 1
+            # Jump is handled by VoxelCollisionSystem when on ground.
 
             # Transform input (dx,dz) by current yaw to move relative to view
-            if dx != 0 or dz != 0 or dy != 0:
+            if dx != 0 or dz != 0:
                 # compute forward and right vectors from yaw
                 yaw_rad = math.radians(self.yaw)
                 forward_x = math.sin(yaw_rad)
@@ -199,17 +197,13 @@ class FirstPersonController(System):
                 # combine
                 move_x = forward_x * dz + right_x * dx
                 move_z = forward_z * dz + right_z * dx
-                move_y = dy
-
-                mag = (move_x * move_x + move_y * move_y + move_z * move_z) ** 0.5
+                mag = (move_x * move_x + move_z * move_z) ** 0.5
                 if mag != 0:
-                    ndx, ndy, ndz = move_x / mag, move_y / mag, move_z / mag
+                    ndx, ndz = move_x / mag, move_z / mag
                 else:
-                    ndx, ndy, ndz = 0.0, 0.0, 0.0
+                    ndx, ndz = 0.0, 0.0
 
-                # Apply directly to position (no physics integration)
                 pos.x += ndx * self.speed
-                pos.y += ndy * self.speed
                 pos.z += ndz * self.speed
 
             # Update camera follow object if present on engine

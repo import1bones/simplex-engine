@@ -1,6 +1,11 @@
-"""
-Simple test version of ping-pong game to debug core issues.
-"""
+"""Simplified ping-pong demo for debugging core engine behavior."""
+
+import os
+import sys
+
+_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, _root)
+sys.path.insert(0, os.path.dirname(__file__))
 
 from simplex.engine import Engine
 from simplex.ecs.components import (
@@ -9,16 +14,10 @@ from simplex.ecs.components import (
     RenderComponent,
     CollisionComponent,
     InputComponent,
-    ScoreComponent,
-)
-from simplex.ecs.systems import (
-    MovementSystem,
-    CollisionSystem,
-    InputSystem,
-    ScoringSystem,
 )
 from simplex.ecs.ecs import Entity
 from simplex.renderer.simple_renderer import SimpleRenderer
+from ecs_setup import install_ping_pong_systems
 import time
 
 # --- Simple Game Setup ---
@@ -29,17 +28,7 @@ engine.renderer = SimpleRenderer(width=800, height=600)
 # Connect renderer to engine event system for input forwarding
 engine.renderer.set_engine_events(engine.events)
 
-# Create ECS systems in correct order
-movement_system = MovementSystem(event_system=engine.events, bounds=(800, 600))
-input_system = InputSystem(event_system=engine.events)
-collision_system = CollisionSystem(event_system=engine.events, bounds=(800, 600))
-scoring_system = ScoringSystem(event_system=engine.events, bounds=(800, 600))
-
-# Add systems in the correct order
-engine.ecs.add_system(input_system)
-engine.ecs.add_system(movement_system)
-engine.ecs.add_system(collision_system)
-engine.ecs.add_system(scoring_system)
+_, _, _, scoring_system = install_ping_pong_systems(engine, bounds=(800, 600))
 
 # Create game entities
 # Player paddle

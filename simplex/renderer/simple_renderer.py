@@ -236,7 +236,7 @@ class SimpleRenderer(RendererInterface):
                     self.engine_events.emit("input", game_event)
                     log(
                         f"Input event emitted: {game_event.type} {game_event.key}",
-                        level="INFO",
+                        level="DEBUG",
                     )
 
         except Exception as e:

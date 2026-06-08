@@ -30,7 +30,7 @@ class ChunkManager:
         while len(self._chunks) > self.cache_size:
             # pop oldest
             pos, _ = self._lru.popitem(last=False)
-            log(f"ChunkManager: Evicting chunk at {pos}", level="INFO")
+            log(f"ChunkManager: Evicting chunk at {pos}", level="DEBUG")
             self.unload_chunk(pos)
 
     def _register_access(self, pos: Tuple[int, int, int]):
@@ -81,7 +81,7 @@ class ChunkManager:
             # register
             self._chunks[pos] = {"chunk": chunk, "entity_name": entity_name}
             self._register_access(pos)
-            log(f"ChunkManager: Created and registered chunk entity {entity_name}", level="INFO")
+            log(f"ChunkManager: Created and registered chunk entity {entity_name}", level="DEBUG")
             self._evict_if_needed()
             return e
         except Exception as exc:
@@ -109,7 +109,7 @@ class ChunkManager:
                 entity_name = info.get("entity_name")
                 if entity_name and self.ecs.get_entity(entity_name):
                     self.ecs.remove_entity(entity_name)
-                log(f"ChunkManager: Unloaded chunk at {pos}", level="INFO")
+                log(f"ChunkManager: Unloaded chunk at {pos}", level="DEBUG")
                 return True
             return False
         except Exception as exc:
@@ -125,23 +125,32 @@ class ChunkManager:
     def list_loaded(self):
         return list(self._chunks.keys())
 
-    def preload_area(self, center: Tuple[int, int, int], radius: int = 1):
-        """Ensure all chunks within `radius` (Manhattan) of center are loaded.
+    def preload_area(
+        self,
+        center: Tuple[int, int, int],
+        radius: int = 1,
+        horizontal_only: bool = False,
+    ):
+        """Ensure chunks within `radius` of center are loaded.
 
-        Uses create_chunk for each position and then evicts if cache exceeded.
+        When `horizontal_only` is True, only the center Y slice is loaded (flat worlds).
         """
         cx, cy, cz = center
 
-        # Build positions list (center first) to ensure center is created
-        positions = []
-        positions.append((cx, cy, cz))
-        for dx in range(-radius, radius + 1):
-            for dy in range(-radius, radius + 1):
+        positions = [(cx, cy, cz)]
+        if horizontal_only:
+            for dx in range(-radius, radius + 1):
                 for dz in range(-radius, radius + 1):
-                    pos = (cx + dx, cy + dy, cz + dz)
-                    if pos == (cx, cy, cz):
-                        continue
-                    positions.append(pos)
+                    pos = (cx + dx, cy, cz + dz)
+                    if pos != (cx, cy, cz):
+                        positions.append(pos)
+        else:
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+                    for dz in range(-radius, radius + 1):
+                        pos = (cx + dx, cy + dy, cz + dz)
+                        if pos != (cx, cy, cz):
+                            positions.append(pos)
 
         for pos in positions:
             try:
@@ -166,25 +175,34 @@ class ChunkManager:
         # after loading, ensure we don't exceed cache
         self._evict_if_needed()
 
-    def unload_outside_area(self, center: Tuple[int, int, int], radius: int = 1):
-        """Unload any loaded chunk whose max(|dx|,|dy|,|dz|) > radius.
-
-        Useful to prune chunks outside streaming radius.
-        """
+    def unload_outside_area(
+        self,
+        center: Tuple[int, int, int],
+        radius: int = 1,
+        horizontal_only: bool = False,
+    ):
+        """Unload chunks outside the streaming radius around center."""
         cx, cy, cz = center
         to_unload = []
         for pos in list(self._chunks.keys()):
             dx = abs(pos[0] - cx)
             dy = abs(pos[1] - cy)
             dz = abs(pos[2] - cz)
-            if max(dx, dy, dz) > radius:
+            if horizontal_only:
+                if pos[1] != cy or max(dx, dz) > radius:
+                    to_unload.append(pos)
+            elif max(dx, dy, dz) > radius:
                 to_unload.append(pos)
 
         for pos in to_unload:
             self.unload_chunk(pos)
 
-    def ensure_area_loaded(self, center: Tuple[int, int, int], radius: int = 1):
-        """Convenience: preload area then unload outside it.
-        """
-        self.preload_area(center, radius)
-        self.unload_outside_area(center, radius)
+    def ensure_area_loaded(
+        self,
+        center: Tuple[int, int, int],
+        radius: int = 1,
+        horizontal_only: bool = False,
+    ):
+        """Convenience: preload area then unload outside it."""
+        self.preload_area(center, radius, horizontal_only=horizontal_only)
+        self.unload_outside_area(center, radius, horizontal_only=horizontal_only)

@@ -4,6 +4,11 @@ main.py - Ping-Pong Game (MVP-Sample-4)
 A simple GUI ping-pong game using simplex-engine.
 """
 
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 from simplex.engine import Engine
 from simplex.physics.body import RigidBody
 from simplex.event.event_system import EventSystem

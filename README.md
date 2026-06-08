@@ -60,7 +60,7 @@ Controls for `run_player.py`: **WASD** move, **mouse** look, **Space** up, **ESC
 ### Running the Ping-Pong Example
 
 ```bash
-uv run python3 examples/ping_pong/test_simple.py
+uv run python3 examples/ping_pong/run_simple.py
 # Or the full-featured version:
 uv run python3 examples/ping_pong/main_gui.py
 ```

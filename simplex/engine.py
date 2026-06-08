@@ -113,7 +113,7 @@ class Engine:
         # Register core ECS systems
         movement_system = MovementSystem(event_system=self.events, bounds=bounds)
         collision_system = CollisionSystem(event_system=self.events, bounds=bounds)
-        input_system = InputSystem(event_system=self.events)
+        input_system = InputSystem(event_system=self.events, bounds=bounds)
         scoring_system = ScoringSystem(event_system=self.events, bounds=bounds)
 
         self.ecs.add_system(movement_system)
@@ -131,12 +131,37 @@ class Engine:
         except Exception:
             log("Engine: Player controller not available", level="DEBUG")
 
+        # Voxel collision + chunk streaming (after player movement)
+        world_config = self.config.get("world", {})
+        streaming_radius = int(world_config.get("streaming_radius", 1))
+        horizontal_streaming = bool(world_config.get("horizontal_streaming", True))
+        try:
+            from simplex.ecs.voxel_collision_system import VoxelCollisionSystem
+            from simplex.ecs.chunk_streaming_system import ChunkStreamingSystem
+
+            self.ecs.add_system(VoxelCollisionSystem(event_system=self.events, engine=self))
+            self.ecs.add_system(
+                ChunkStreamingSystem(
+                    event_system=self.events,
+                    engine=self,
+                    radius=streaming_radius,
+                    horizontal_only=horizontal_streaming,
+                )
+            )
+            log("Engine: Voxel collision and chunk streaming registered", level="INFO")
+        except Exception as e:
+            log(f"Engine: Failed to register voxel systems: {e}", level="WARNING")
+
         # Register chunk systems for voxel world support (creates chunks and generates meshes)
         try:
             from .ecs.chunk_system import ChunkSystem, ChunkMeshSystem
 
+            mesh_budget = int(world_config.get("mesh_chunks_per_frame", 2))
             chunk_system = ChunkSystem(event_system=self.events)
-            chunk_mesh_system = ChunkMeshSystem(event_system=self.events)
+            chunk_mesh_system = ChunkMeshSystem(
+                event_system=self.events,
+                max_chunks_per_frame=mesh_budget,
+            )
             self.ecs.add_system(chunk_system)
             self.ecs.add_system(chunk_mesh_system)
             log("Engine: Chunk systems registered", level="INFO")
@@ -279,7 +304,7 @@ class Engine:
             if isinstance(event, dict) and "scorer" in event:
                 log(
                     f"Score Event: {event['scorer']} scored! Current score: {event.get('score', {})}",
-                    level="INFO",
+                    level="DEBUG",
                 )
                 # Emit to other systems that might care about scoring
                 self.events.emit("game_score_update", event)
@@ -420,6 +445,7 @@ class Engine:
             return
 
         try:
+            self._last_delta_time = delta_time
             # Update order is important for proper data flow
             # 1. Input processing (OpenGL renderer owns pygame display + events)
             ogl = self.get_opengl_renderer()

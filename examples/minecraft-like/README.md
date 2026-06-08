@@ -34,6 +34,6 @@ uv run python3 examples/minecraft-like/run_player.py
 
 ## Known limitations (MVP)
 
-- Fixed 3×3 chunk area (no player-driven streaming yet)
-- Low FPS on immediate-mode GL fallback
-- No voxel collision (player can move through terrain)
+- Low FPS on immediate-mode GL fallback (numpy VBO path helps when available)
+- No cross-chunk face culling (visible seams at borders)
+- No block place/break interaction

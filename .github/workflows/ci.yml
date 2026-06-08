@@ -17,7 +17,7 @@ jobs:
           enable-cache: true
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1 libglu1-mesa
 
       - name: Install Python dependencies
         run: uv sync

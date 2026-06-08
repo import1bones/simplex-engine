@@ -26,8 +26,9 @@ class Input(InputInterface):
             import pygame
 
             pygame.init()
-            # Create a hidden display to allow event polling
-            pygame.display.set_mode((1, 1), pygame.HIDDEN)
+            # Do not recreate the display when another subsystem (e.g. OpenGL) owns it
+            if not pygame.display.get_init():
+                pygame.display.set_mode((1, 1), pygame.HIDDEN)
             self._initialized = True
 
     def set_backend(self, backend: str) -> None:
@@ -50,7 +51,7 @@ class Input(InputInterface):
 
                 pygame.event.pump()
                 events = pygame.event.get()
-                log(f"Polled {len(events)} pygame events.", level="INFO")
+                log(f"Polled {len(events)} pygame events.", level="DEBUG")
                 # Emit events for each pygame event
                 if self.event_system:
                     for event in events:

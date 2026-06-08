@@ -6,7 +6,7 @@ name = "Simplex Demo Engine"
 version = "0.1"
 
 [renderer]
-backend = "OpenGL"
+backend = "opengl"
 
 [physics]
 enabled = true

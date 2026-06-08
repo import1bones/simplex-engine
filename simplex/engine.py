@@ -392,6 +392,23 @@ class Engine:
         except Exception as e:
             log(f"Hot-reloading setup failed: {e}", level="DEBUG")
 
+    def get_opengl_renderer(self):
+        """Return the active OpenGLRenderer (facade child or direct attachment)."""
+        renderer = getattr(self, "renderer", None)
+        if renderer is None:
+            return None
+        ogl = getattr(renderer, "opengl_renderer", None)
+        if ogl is not None:
+            return ogl
+        try:
+            from .renderer.opengl_renderer import OpenGLRenderer
+
+            if isinstance(renderer, OpenGLRenderer):
+                return renderer
+        except Exception:
+            pass
+        return None
+
     def update(self, delta_time: float = 0.016):
         """
         Update all engine subsystems in the correct order.
@@ -405,8 +422,13 @@ class Engine:
 
         try:
             # Update order is important for proper data flow
-            # 1. Input processing
-            self.input.poll()
+            # 1. Input processing (OpenGL renderer owns pygame display + events)
+            ogl = self.get_opengl_renderer()
+            if ogl and getattr(ogl, "initialized", False):
+                if not ogl._poll_input_events():
+                    return
+            else:
+                self.input.poll()
 
             # 2. Script updates (may modify entities)
             self.script_manager.update(delta_time)
@@ -555,10 +577,10 @@ class Engine:
         The camera should expose a `position` attribute (tuple) and optional `target`.
         """
         try:
-            # Prefer OpenGL renderer if available
-            if hasattr(self.renderer, "opengl_renderer") and getattr(self.renderer, "opengl_renderer") is not None:
+            ogl = self.get_opengl_renderer()
+            if ogl is not None:
                 try:
-                    self.renderer.opengl_renderer.set_camera(camera)
+                    ogl.set_camera(camera)
                     log("Engine: Camera set on OpenGL renderer", level="INFO")
                     return True
                 except Exception as e:
@@ -608,7 +630,7 @@ class Engine:
                 def __init__(self, position=(0,0,0)):
                     self.position = position
 
-            cam = CamObj((position[0], position[1] + 1.6, position[2] + 4))
+            cam = CamObj((position[0], position[1] + 1.6, position[2]))
             self.camera_follow = cam
             log(f"Engine: Spawned player '{name}' at {position}", level="INFO")
             return e

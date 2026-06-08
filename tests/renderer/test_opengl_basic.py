@@ -45,8 +45,7 @@ def test_basic_initialization():
         import traceback
 
         traceback.print_exc()
-        # Fail the test explicitly
-        assert False, f"Exception during OpenGL basic initialization test: {e}"
+        raise
 
 
 def test_scene_rendering():
@@ -86,7 +85,7 @@ def test_scene_rendering():
         import traceback
 
         traceback.print_exc()
-        assert False, f"Exception during OpenGL scene rendering test: {e}"
+        raise
 
 
 def main():
@@ -103,7 +102,13 @@ def main():
 
     for test_name, test_func in tests:
         log(f"\n--- Running {test_name} Test ---", level="INFO")
-        if test_func():
+        try:
+            result = test_func()
+        except Exception as e:
+            result = False
+            log(f"✗ {test_name} test raised exception: {e}", level="ERROR")
+
+        if result:
             passed += 1
             log(f"✓ {test_name} test PASSED", level="INFO")
         else:
@@ -113,8 +118,10 @@ def main():
 
     if passed == total:
         log("🎉 All tests PASSED!", level="INFO")
+        return True
     else:
         log("❌ Some tests FAILED!", level="ERROR")
+        return False
 
 
 if __name__ == "__main__":

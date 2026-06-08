@@ -90,6 +90,30 @@ def test_opengl_renderer_falls_back_to_helpers():
     assert mesh.gpu.get("vbo") == 123
 
 
+def test_render_ecs_meshes_draws_mesh_components():
+    from simplex.ecs.ecs import ECS, Entity
+    from simplex.ecs.components import MeshComponent
+
+    renderer = OpenGLRenderer()
+    ecs = ECS()
+    entity = Entity("chunk_0_0_0")
+    mesh = MeshComponent(
+        vertices=[0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+        colors=[1.0, 0.0, 0.0, 1.0] * 3,
+        origin=(0, 0, 0),
+    )
+    entity.add_component(mesh)
+    ecs.add_entity(entity)
+    renderer.ecs = ecs
+
+    drawn = []
+    renderer._draw_mesh = lambda m: drawn.append(m)
+
+    assert renderer._render_ecs_meshes() is True
+    assert len(drawn) == 1
+    assert drawn[0] is mesh
+
+
 def test_event_unregister():
     events = EventSystem()
     calls = []

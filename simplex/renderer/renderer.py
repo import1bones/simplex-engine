@@ -120,6 +120,8 @@ class Renderer(RendererInterface):
 
         # Initialize rendering backend based on config
         backend_type = self.config.get("backend", "debug")
+        if isinstance(backend_type, str):
+            backend_type = backend_type.lower()
 
         if backend_type == "pygame":
             self._initialize_pygame_backend()
@@ -130,7 +132,7 @@ class Renderer(RendererInterface):
             self._initialize_debug_backend()
 
         self._initialized = True
-        log(f"Renderer initialized with {backend_type} backend", level="INFO")
+        log(f"Renderer initialized with {self.backend} backend", level="INFO")
 
     def _initialize_pygame_backend(self):
         """Initialize pygame rendering backend."""
@@ -197,6 +199,11 @@ class Renderer(RendererInterface):
     def add_post_effect(self, effect):
         self.post_effects.append(effect)
         log(f"Added post-processing effect: {effect}", level="INFO")
+
+    def set_camera(self, camera):
+        """Attach a camera to the active rendering backend."""
+        if hasattr(self, "opengl_renderer") and self.opengl_renderer is not None:
+            self.opengl_renderer.set_camera(camera)
 
     def add_primitive(
         self, primitive, material=None, parent=None, transform=None, instance_count=1

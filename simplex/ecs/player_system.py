@@ -226,7 +226,7 @@ class FirstPersonController(System):
                         self.engine.camera_follow = _Cam()
                     cam = self.engine.camera_follow
                     # set camera position a bit above player and push orientation
-                    cam.position = (pos.x, pos.y + 1.6, pos.z + 4)
+                    cam.position = (pos.x, pos.y + 1.6, pos.z)
                     cam.yaw = self.yaw
                     cam.pitch = self.pitch
             except Exception as e:

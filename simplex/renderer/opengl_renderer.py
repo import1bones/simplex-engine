@@ -144,6 +144,17 @@ class OpenGLRenderer(RendererInterface):
     def set_camera(self, camera):
         self.camera = camera
 
+    def _reset_modelview_stack(self):
+        """Pop leaked matrices from prior frames (glLoadIdentity does not shrink the stack)."""
+        if not gl:
+            return
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        try:
+            while gl.glGetIntegerv(gl.GL_MODELVIEW_STACK_DEPTH) > 1:
+                gl.glPopMatrix()
+        except Exception:
+            pass
+
     def render(self):
         if not self.initialized:
             log("OpenGLRenderer not initialized, skipping render", level="WARNING")
@@ -156,6 +167,7 @@ class OpenGLRenderer(RendererInterface):
         aspect = self.width / self.height if self.height != 0 else 1
         glu.gluPerspective(70, aspect, 0.1, 1000.0)
         gl.glMatrixMode(gl.GL_MODELVIEW)
+        self._reset_modelview_stack()
         gl.glLoadIdentity()
         # Use oriented camera (yaw/pitch) when available; fall back to simple lookAt
         # Simple camera: move back to see the scene
@@ -183,150 +195,165 @@ class OpenGLRenderer(RendererInterface):
             glu.gluLookAt(5, 5, 10, 0, 0, 0, 0, 1, 0)  # Better default view
 
         # --- Scene traversal and rendering ---
-        if self.scene_root:
+        rendered_any = False
+        if self.scene_root and getattr(self.scene_root, "children", None):
             self._traverse_and_render(self.scene_root)
-        else:
-            # Render a default test cube if no scene
+            rendered_any = True
+        if self._render_ecs_meshes():
+            rendered_any = True
+        if not rendered_any:
             self._render_default_test_content()
-
-        # Poll pygame events and forward to engine event system for unified input
-        try:
-            if pygame:
-                for event in pygame.event.get():
-                    # Handle window close
-                    if event.type == pygame.QUIT:
-                        pygame.quit()
-                        return
-                    # Toggle mouse capture on ESC key
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                        try:
-                            # flip grab state
-                            if getattr(self, '_mouse_grabbed', False):
-                                pygame.event.set_grab(False)
-                                pygame.mouse.set_visible(True)
-                                self._mouse_grabbed = False
-                            else:
-                                pygame.event.set_grab(True)
-                                pygame.mouse.set_visible(False)
-                                try:
-                                    pygame.mouse.set_pos((self.width // 2, self.height // 2))
-                                except Exception:
-                                    pass
-                                self._mouse_grabbed = True
-                            # emit an event for other systems
-                            if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
-                                try:
-                                    self.engine.events.emit('mouse_capture_toggled', {'captured': self._mouse_grabbed})
-                                except Exception:
-                                    pass
-                        except Exception:
-                            pass
-                        # don't treat ESC as game movement input
-                        continue
-                    # Key events
-                    if event.type in (pygame.KEYDOWN, pygame.KEYUP):
-                        if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
-                            # Map keys to engine-agnostic names
-                            if event.key in [pygame.K_UP, pygame.K_w]:
-                                game_key = 'UP'
-                            elif event.key in [pygame.K_DOWN, pygame.K_s]:
-                                game_key = 'DOWN'
-                            elif event.key in [pygame.K_LEFT, pygame.K_a]:
-                                game_key = 'LEFT'
-                            elif event.key in [pygame.K_RIGHT, pygame.K_d]:
-                                game_key = 'RIGHT'
-                            elif event.key == pygame.K_SPACE:
-                                game_key = 'SPACE'
-                            else:
-                                game_key = None
-                            if game_key is not None:
-                                evt = type('Event', (), {})()
-                                evt.type = 'KEYDOWN' if event.type == pygame.KEYDOWN else 'KEYUP'
-                                evt.key = game_key
-                                try:
-                                    self.engine.events.emit('input', evt)
-                                except Exception:
-                                    pass
-                    # Mouse motion
-                    if event.type == pygame.MOUSEMOTION:
-                        if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
-                            mevt = {'type': 'MOUSEMOTION', 'rel': event.rel, 'pos': event.pos}
-                            try:
-                                self.engine.events.emit('mouse', mevt)
-                            except Exception:
-                                pass
-        except Exception:
-            pass
 
         pygame.display.flip()
         # Remove debug log to avoid spam
         # log("OpenGL frame rendered", level="DEBUG")
 
+    def _poll_input_events(self):
+        """Poll pygame events and forward to the engine event system.
+
+        Called from Engine.update() before ECS so input is available the same frame.
+        Returns False when the window was closed.
+        """
+        try:
+            if not pygame:
+                return True
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    self.initialized = False
+                    return False
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    try:
+                        if getattr(self, '_mouse_grabbed', False):
+                            pygame.event.set_grab(False)
+                            pygame.mouse.set_visible(True)
+                            self._mouse_grabbed = False
+                        else:
+                            pygame.event.set_grab(True)
+                            pygame.mouse.set_visible(False)
+                            try:
+                                pygame.mouse.set_pos((self.width // 2, self.height // 2))
+                            except Exception:
+                                pass
+                            self._mouse_grabbed = True
+                        if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
+                            try:
+                                self.engine.events.emit(
+                                    'mouse_capture_toggled',
+                                    {'captured': self._mouse_grabbed},
+                                )
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                    continue
+                if event.type in (pygame.KEYDOWN, pygame.KEYUP):
+                    if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
+                        if event.key in [pygame.K_UP, pygame.K_w]:
+                            game_key = 'UP'
+                        elif event.key in [pygame.K_DOWN, pygame.K_s]:
+                            game_key = 'DOWN'
+                        elif event.key in [pygame.K_LEFT, pygame.K_a]:
+                            game_key = 'LEFT'
+                        elif event.key in [pygame.K_RIGHT, pygame.K_d]:
+                            game_key = 'RIGHT'
+                        elif event.key == pygame.K_SPACE:
+                            game_key = 'SPACE'
+                        else:
+                            game_key = None
+                        if game_key is not None:
+                            evt = type('Event', (), {})()
+                            evt.type = 'KEYDOWN' if event.type == pygame.KEYDOWN else 'KEYUP'
+                            evt.key = game_key
+                            try:
+                                self.engine.events.emit('input', evt)
+                            except Exception:
+                                pass
+                if event.type == pygame.MOUSEMOTION:
+                    if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
+                        mevt = {'type': 'MOUSEMOTION', 'rel': event.rel, 'pos': event.pos}
+                        try:
+                            self.engine.events.emit('mouse', mevt)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+        return True
+
+    def _get_vbo_manager(self):
+        if getattr(self, 'vbo_manager', None) is not None:
+            return self.vbo_manager
+        if hasattr(self, 'engine') and getattr(self.engine, 'vbo_manager', None):
+            return self.engine.vbo_manager
+        return None
+
+    def _get_vbo_helpers(self):
+        if hasattr(self, 'engine') and getattr(self.engine, 'vbo_helpers', None):
+            return self.engine.vbo_helpers
+        if create_vbo_for_mesh and delete_vbo:
+            return {'create_vbo_for_mesh': create_vbo_for_mesh, 'delete_vbo': delete_vbo}
+        return None
+
+    def _ensure_mesh_gpu(self, mesh_comp):
+        """Upload mesh data to GPU when a VBO manager or helpers are available."""
+        if getattr(mesh_comp, 'gpu', None) is not None:
+            return
+
+        vm = self._get_vbo_manager()
+        if vm:
+            try:
+                mesh_comp.gpu = vm.create_vbo(mesh_comp.vertices, mesh_comp.colors)
+                log(
+                    f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count') if mesh_comp.gpu else 'N/A'})",
+                    level="DEBUG",
+                )
+                return
+            except Exception as e:
+                log(f"OpenGLRenderer: GPU upload failed via VBOManager: {e}", level="DEBUG")
+
+        helpers = self._get_vbo_helpers()
+        if helpers and helpers.get('create_vbo_for_mesh'):
+            try:
+                mesh_comp.gpu = helpers['create_vbo_for_mesh'](
+                    mesh_comp.vertices, mesh_comp.colors
+                )
+                log(
+                    f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count')})",
+                    level="DEBUG",
+                )
+            except Exception as e:
+                log(f"OpenGLRenderer: GPU upload failed: {e}", level="DEBUG")
+
+    def _render_ecs_meshes(self) -> bool:
+        """Draw ECS entities that carry a MeshComponent. Returns True if any mesh was drawn."""
+        ecs = getattr(self, 'ecs', None)
+        if not ecs or not hasattr(ecs, 'get_entities_with'):
+            return False
+
+        drawn = False
+        for entity in ecs.get_entities_with('mesh'):
+            mesh_comp = entity.get_component('mesh')
+            if not mesh_comp or not getattr(mesh_comp, 'vertices', None):
+                continue
+            self._ensure_mesh_gpu(mesh_comp)
+            self._draw_mesh(mesh_comp)
+            drawn = True
+        return drawn
+
     def _render_default_test_content(self):
         """Render some default content when no scene is set."""
-        # Draw a simple rotating cube at origin
-        gl.glPushMatrix()
-        gl.glColor3f(0.8, 0.4, 0.2)  # Orange color
-
-        # Simple rotation based on time
         import time
 
-        rotation = (time.time() * 50) % 360
-        gl.glRotatef(rotation, 1, 1, 0)
-
-        self._draw_unit_cube()
-        gl.glPopMatrix()
+        gl.glPushMatrix()
+        try:
+            gl.glColor3f(0.8, 0.4, 0.2)
+            rotation = (time.time() * 50) % 360
+            gl.glRotatef(rotation, 1, 1, 0)
+            self._draw_unit_cube()
+        finally:
+            gl.glPopMatrix()
 
     def _traverse_and_render(self, node, parent_transform=None):
-        # Draw mesh component if present
-        if hasattr(node, "components"):
-            mesh_comp = (
-                node.get_component("mesh") if hasattr(node, "get_component") else None
-            )
-            if mesh_comp and getattr(mesh_comp, "vertices", None):
-                # If GPU handle not present, attempt upload now (context guaranteed here)
-                # Prefer engine-provided VBO helpers (registered via scheduler) if present
-                #                helpers = None
-                #                if hasattr(self, 'engine') and getattr(self.engine, 'vbo_helpers', None):
-                #                    helpers = getattr(self.engine, 'vbo_helpers')
-                #                elif create_vbo_for_mesh and delete_vbo:
-                #                    helpers = {'create_vbo_for_mesh': create_vbo_for_mesh, 'delete_vbo': delete_vbo}
-                #
-                #                if getattr(mesh_comp, "gpu", None) is None and helpers and helpers.get('create_vbo_for_mesh'):
-                #                    try:
-                #                        mesh_comp.gpu = helpers['create_vbo_for_mesh'](mesh_comp.vertices, mesh_comp.colors)
-                #                        log(f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count')})", level="DEBUG")
-                #                    except Exception as e:
-                #                        log(f"OpenGLRenderer: GPU upload failed: {e}", level="DEBUG")
-                #                self._draw_mesh(mesh_comp)
-                # Prefer an engine-provided VBOManager if attached
-                vm = None
-                if hasattr(self, 'vbo_manager') and self.vbo_manager is not None:
-                    vm = self.vbo_manager
-                elif hasattr(self, 'engine') and getattr(self.engine, 'vbo_manager', None):
-                    vm = getattr(self.engine, 'vbo_manager')
-
-                if getattr(mesh_comp, "gpu", None) is None and vm:
-                    try:
-                        mesh_comp.gpu = vm.create_vbo(mesh_comp.vertices, mesh_comp.colors)
-                        log(f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count') if mesh_comp.gpu else 'N/A'})", level="DEBUG")
-                    except Exception as e:
-                        log(f"OpenGLRenderer: GPU upload failed via VBOManager: {e}", level="DEBUG")
-                else:
-                    # Fallback to module-level helpers
-                    helpers = None
-                    if hasattr(self, 'engine') and getattr(self.engine, 'vbo_helpers', None):
-                        helpers = getattr(self.engine, 'vbo_helpers')
-                    elif create_vbo_for_mesh and delete_vbo:
-                        helpers = {'create_vbo_for_mesh': create_vbo_for_mesh, 'delete_vbo': delete_vbo}
-                    if getattr(mesh_comp, "gpu", None) is None and helpers and helpers.get('create_vbo_for_mesh'):
-                        try:
-                            mesh_comp.gpu = helpers['create_vbo_for_mesh'](mesh_comp.vertices, mesh_comp.colors)
-                            log(f"OpenGLRenderer: Uploaded mesh to GPU (count={mesh_comp.gpu.get('count')})", level="DEBUG")
-                        except Exception as e:
-                            log(f"OpenGLRenderer: GPU upload failed: {e}", level="DEBUG")
-                self._draw_mesh(mesh_comp)
-
         # For now, ignore transforms and just draw cubes for primitives named 'cube' or 'voxel'
         if hasattr(node, "primitive") and node.primitive in ("cube", "voxel"):
             self._draw_cube(node)
@@ -334,44 +361,7 @@ class OpenGLRenderer(RendererInterface):
             for child in node.children:
                 self._traverse_and_render(child)
 
-    def _draw_mesh(self, mesh_comp):
-        """Immediate-mode fallback to draw meshes stored in MeshComponent.
-
-        Honors mesh_comp.origin to place chunk meshes in world space.
-        If VBOs are available, upload once and draw using VBOs.
-        """
-        verts = mesh_comp.vertices or []
-        cols = mesh_comp.colors or []
-        if not verts:
-            return
-
-        # If a GPU handle exists, draw using VBOs
-        if getattr(mesh_comp, "gpu", None) and gl and create_vbo_for_mesh:
-            handle = mesh_comp.gpu
-            gl.glPushMatrix()
-            if getattr(mesh_comp, "origin", None):
-                ox, oy, oz = mesh_comp.origin
-                gl.glTranslatef(ox, oy, oz)
-            # Bind vertex VBO
-            gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
-            gl.glEnableClientState(gl.GL_COLOR_ARRAY)
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, handle["vbo"])
-            gl.glVertexPointer(3, gl.GL_FLOAT, 0, None)
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, handle["vbo_color"])
-            gl.glColorPointer(4, gl.GL_FLOAT, 0, None)
-            gl.glDrawArrays(gl.GL_TRIANGLES, 0, handle["count"])
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-            gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
-            gl.glDisableClientState(gl.GL_COLOR_ARRAY)
-            gl.glPopMatrix()
-            return
-
-        # Otherwise fallback to immediate-mode draw
-        gl.glPushMatrix()
-        # Apply mesh world origin translation
-        if getattr(mesh_comp, "origin", None):
-            ox, oy, oz = mesh_comp.origin
-            gl.glTranslatef(ox, oy, oz)
+    def _draw_mesh_immediate(self, verts, cols):
         gl.glBegin(gl.GL_TRIANGLES)
         vcount = len(verts) // 3
         for i in range(vcount):
@@ -384,7 +374,52 @@ class OpenGLRenderer(RendererInterface):
             gl.glColor4f(r, g, b, a)
             gl.glVertex3f(verts[i * 3 + 0], verts[i * 3 + 1], verts[i * 3 + 2])
         gl.glEnd()
-        gl.glPopMatrix()
+
+    def _draw_mesh_vbo(self, mesh_comp) -> bool:
+        handle = mesh_comp.gpu
+        try:
+            gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
+            gl.glEnableClientState(gl.GL_COLOR_ARRAY)
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, handle["vbo"])
+            gl.glVertexPointer(3, gl.GL_FLOAT, 0, None)
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, handle["vbo_color"])
+            gl.glColorPointer(4, gl.GL_FLOAT, 0, None)
+            gl.glDrawArrays(gl.GL_TRIANGLES, 0, handle["count"])
+            return True
+        except Exception as e:
+            log(f"OpenGLRenderer: VBO draw failed, falling back to immediate mode: {e}", level="DEBUG")
+            mesh_comp.gpu = None
+            return False
+        finally:
+            try:
+                gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+                gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
+                gl.glDisableClientState(gl.GL_COLOR_ARRAY)
+            except Exception:
+                pass
+
+    def _draw_mesh(self, mesh_comp):
+        """Draw meshes stored in MeshComponent (VBO path with immediate-mode fallback)."""
+        verts = mesh_comp.vertices or []
+        cols = mesh_comp.colors or []
+        if not verts or not gl:
+            return
+
+        gl.glPushMatrix()
+        try:
+            if getattr(mesh_comp, "origin", None):
+                ox, oy, oz = mesh_comp.origin
+                gl.glTranslatef(ox, oy, oz)
+
+            if getattr(mesh_comp, "gpu", None) and self._draw_mesh_vbo(mesh_comp):
+                return
+
+            self._draw_mesh_immediate(verts, cols)
+        finally:
+            try:
+                gl.glPopMatrix()
+            except Exception:
+                self._reset_modelview_stack()
 
     def _draw_cube(self, node):
         # Draw a simple colored cube at node.position (default at origin)
@@ -398,11 +433,13 @@ class OpenGLRenderer(RendererInterface):
         ):
             color = node.material.properties.get("color", color)
         gl.glPushMatrix()
-        gl.glTranslatef(pos[0], pos[1], pos[2])
-        gl.glScalef(size, size, size)
-        gl.glColor3f(*color)
-        self._draw_unit_cube()
-        gl.glPopMatrix()
+        try:
+            gl.glTranslatef(pos[0], pos[1], pos[2])
+            gl.glScalef(size, size, size)
+            gl.glColor3f(*color)
+            self._draw_unit_cube()
+        finally:
+            gl.glPopMatrix()
 
     def _draw_unit_cube(self):
         """Draw a unit cube centered at origin."""

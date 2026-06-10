@@ -131,16 +131,28 @@ class Engine:
         except Exception:
             log("Engine: Player controller not available", level="DEBUG")
 
+        try:
+            from simplex.ecs.block_interaction_system import BlockInteractionSystem
+
+            self.ecs.add_system(
+                BlockInteractionSystem(event_system=self.events, engine=self)
+            )
+            log("Engine: Block interaction system registered", level="INFO")
+        except Exception as e:
+            log(f"Engine: Block interaction not available: {e}", level="DEBUG")
+
         # Voxel collision + chunk streaming (after player movement)
         world_config = self.config.get("world", {})
         streaming_radius = int(world_config.get("streaming_radius", 1))
         horizontal_streaming = bool(world_config.get("horizontal_streaming", True))
         stream_y_chunk = int(world_config.get("stream_y_chunk", 0))
+        # Load/stream terrain before collision so ground queries succeed the same frame.
         try:
-            from simplex.ecs.voxel_collision_system import VoxelCollisionSystem
             from simplex.ecs.chunk_streaming_system import ChunkStreamingSystem
+            from .ecs.chunk_system import ChunkSystem, ChunkMeshSystem
+            from simplex.ecs.voxel_collision_system import VoxelCollisionSystem
 
-            self.ecs.add_system(VoxelCollisionSystem(event_system=self.events, engine=self))
+            mesh_budget = int(world_config.get("mesh_chunks_per_frame", 2))
             self.ecs.add_system(
                 ChunkStreamingSystem(
                     event_system=self.events,
@@ -150,25 +162,17 @@ class Engine:
                     stream_y_chunk=stream_y_chunk,
                 )
             )
-            log("Engine: Voxel collision and chunk streaming registered", level="INFO")
+            self.ecs.add_system(ChunkSystem(event_system=self.events))
+            self.ecs.add_system(
+                ChunkMeshSystem(
+                    event_system=self.events,
+                    max_chunks_per_frame=mesh_budget,
+                )
+            )
+            self.ecs.add_system(VoxelCollisionSystem(event_system=self.events, engine=self))
+            log("Engine: Chunk streaming, meshing, and voxel collision registered", level="INFO")
         except Exception as e:
             log(f"Engine: Failed to register voxel systems: {e}", level="WARNING")
-
-        # Register chunk systems for voxel world support (creates chunks and generates meshes)
-        try:
-            from .ecs.chunk_system import ChunkSystem, ChunkMeshSystem
-
-            mesh_budget = int(world_config.get("mesh_chunks_per_frame", 2))
-            chunk_system = ChunkSystem(event_system=self.events)
-            chunk_mesh_system = ChunkMeshSystem(
-                event_system=self.events,
-                max_chunks_per_frame=mesh_budget,
-            )
-            self.ecs.add_system(chunk_system)
-            self.ecs.add_system(chunk_mesh_system)
-            log("Engine: Chunk systems registered", level="INFO")
-        except Exception as e:
-            log(f"Engine: Failed to register chunk systems: {e}", level="WARNING")
 
         # Initialize renderer with config
         renderer_config = self.config.get("renderer", {})
@@ -377,6 +381,10 @@ class Engine:
     def _setup_hot_reloading(self, config_path):
         """Set up hot-reloading features if available."""
         try:
+            engine_cfg = self.config.get("engine", {})
+            if not engine_cfg.get("hot_reload", True):
+                return
+
             # Script plugin registration
             try:
                 from examples.mvp.scripts.plugin_example import script_event_logger
@@ -386,21 +394,28 @@ class Engine:
             except ImportError:
                 log("Script plugin not found, skipping", level="DEBUG")
 
-            # Resource hot-reloader
-            try:
-                from simplex.resource.resource_hot_reloader import ResourceHotReloader
-
-                demo_resource = self.config.get("demo_resource", "example_resource")
+            # Resource hot-reloader (only when demo paths are configured)
+            watch_paths = []
+            demo_resource = self.config.get("demo_resource")
+            if demo_resource:
+                watch_paths.append(demo_resource)
+            if self.config.get("audio", {}).get("enabled", False):
                 demo_sound = self.config.get("audio", {}).get(
                     "demo_sound", "examples/mvp/demo_sound.wav"
                 )
-                self.resource_hot_reloader = ResourceHotReloader(
-                    self.resource_manager,
-                    watch_paths=[demo_resource, demo_sound],
-                    poll_interval=1.0,
-                )
-            except ImportError:
-                log("ResourceHotReloader not available", level="DEBUG")
+                watch_paths.append(demo_sound)
+
+            if watch_paths:
+                try:
+                    from simplex.resource.resource_hot_reloader import ResourceHotReloader
+
+                    self.resource_hot_reloader = ResourceHotReloader(
+                        self.resource_manager,
+                        watch_paths=watch_paths,
+                        poll_interval=1.0,
+                    )
+                except ImportError:
+                    log("ResourceHotReloader not available", level="DEBUG")
 
             # Config hot-reloader
             try:

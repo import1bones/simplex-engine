@@ -201,7 +201,7 @@ class OpenGLRenderer(RendererInterface):
             rendered_any = True
         if self._render_ecs_meshes():
             rendered_any = True
-        if not rendered_any:
+        if not rendered_any and not self._has_voxel_world():
             self._render_default_test_content()
 
         pygame.display.flip()
@@ -269,6 +269,27 @@ class OpenGLRenderer(RendererInterface):
                                 self.engine.events.emit('input', evt)
                             except Exception:
                                 pass
+                if event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
+                    if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
+                        if event.button == 1:
+                            game_button = 'LEFT'
+                        elif event.button == 3:
+                            game_button = 'RIGHT'
+                        else:
+                            game_button = None
+                        if game_button is not None:
+                            bevt = {
+                                'type': 'MOUSEBUTTONDOWN'
+                                if event.type == pygame.MOUSEBUTTONDOWN
+                                else 'MOUSEBUTTONUP',
+                                'button': game_button,
+                                'pressed': event.type == pygame.MOUSEBUTTONDOWN,
+                                'pos': event.pos,
+                            }
+                            try:
+                                self.engine.events.emit('mouse_button', bevt)
+                            except Exception:
+                                pass
                 if event.type == pygame.MOUSEMOTION:
                     if hasattr(self, 'engine') and getattr(self.engine, 'events', None):
                         mevt = {'type': 'MOUSEMOTION', 'rel': event.rel, 'pos': event.pos}
@@ -323,6 +344,15 @@ class OpenGLRenderer(RendererInterface):
                 )
             except Exception as e:
                 log(f"OpenGLRenderer: GPU upload failed: {e}", level="DEBUG")
+
+    def _has_voxel_world(self) -> bool:
+        ecs = getattr(self, "ecs", None)
+        if not ecs:
+            return False
+        for entity in getattr(ecs, "entities", []):
+            if entity.name.startswith("chunk_") and entity.get_component("chunk"):
+                return True
+        return False
 
     def _render_ecs_meshes(self) -> bool:
         """Draw ECS entities that carry a MeshComponent. Returns True if any mesh was drawn."""

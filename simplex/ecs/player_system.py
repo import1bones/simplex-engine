@@ -125,6 +125,11 @@ class FirstPersonController(System):
         log("PlayerController: InputSystem implementation not available in project", level="ERROR")
         return None
 
+    def _delta_time(self) -> float:
+        if self.engine and getattr(self.engine, "_last_delta_time", None):
+            return float(self.engine._last_delta_time)
+        return 1.0 / 60.0
+
     def _ensure_mouse_listener(self):
         """Ensure the controller is registered to receive mouse events from the engine EventSystem."""
         events = self._ensure_event_system()
@@ -176,13 +181,13 @@ class FirstPersonController(System):
 
             # InputSystem uses abstracted key names (e.g. 'UP','DOWN','LEFT','RIGHT','SPACE')
             if input_state.get('UP'):
-                dz -= 1
-            if input_state.get('DOWN'):
                 dz += 1
+            if input_state.get('DOWN'):
+                dz -= 1
             if input_state.get('LEFT'):
-                dx -= 1
-            if input_state.get('RIGHT'):
                 dx += 1
+            if input_state.get('RIGHT'):
+                dx -= 1
             # Jump is handled by VoxelCollisionSystem when on ground.
 
             # Transform input (dx,dz) by current yaw to move relative to view
@@ -203,8 +208,9 @@ class FirstPersonController(System):
                 else:
                     ndx, ndz = 0.0, 0.0
 
-                pos.x += ndx * self.speed
-                pos.z += ndz * self.speed
+                step = self.speed * self._delta_time()
+                pos.x += ndx * step
+                pos.z += ndz * step
 
             # Update camera follow object if present on engine
             try:

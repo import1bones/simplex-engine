@@ -2,7 +2,7 @@
 """Interactive Minecraft-like player demo.
 
 Spawns a player, loads nearby chunks, and runs until the window is closed.
-Controls: WASD move, mouse look, Space up, ESC toggle mouse capture.
+Controls: WASD move, mouse look, Space jump, left-click break, right-click place, ESC toggle mouse capture.
 """
 
 import sys
@@ -27,10 +27,12 @@ if (
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from simplex.engine import Engine
+from simplex.world.world_query import snap_position_to_ground
 
 
 def main():
-    eng = Engine()
+    config_path = os.path.join(os.path.dirname(__file__), "config.toml")
+    eng = Engine(config_path=config_path)
 
     player = eng.spawn_player("Player", position=(0, 8, 0))
     if player:
@@ -45,6 +47,16 @@ def main():
             if e.name.startswith("chunk_")
         ):
             break
+
+    if player and eng.chunk_manager:
+        pos = player.get_component("position")
+        ground_y = snap_position_to_ground(
+            eng.chunk_manager, pos.x, pos.y, pos.z
+        )
+        if ground_y is not None:
+            pos.y = ground_y
+        if eng.camera_follow:
+            eng.camera_follow.position = (pos.x, pos.y + 1.6, pos.z)
 
     try:
         import pygame

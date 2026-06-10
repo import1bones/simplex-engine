@@ -1,0 +1,25 @@
+# Voxel player demo — no ping-pong demo_resource hot-reload noise.
+[engine]
+name = "Simplex Voxel Demo"
+hot_reload = false
+
+[renderer]
+backend = "opengl"
+
+[world]
+streaming_radius = 1
+horizontal_streaming = true
+stream_y_chunk = 0
+mesh_chunks_per_frame = 2
+
+[physics]
+enabled = true
+
+[input]
+backend = "default"
+
+[audio]
+enabled = false
+
+[script]
+enabled = false

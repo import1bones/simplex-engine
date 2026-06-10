@@ -16,6 +16,7 @@ class VoxelCollisionSystem(System):
     PLAYER_RADIUS = 0.3
     GRAVITY = 24.0
     JUMP_SPEED = 8.0
+    MIN_WORLD_Y = -32.0
 
     def __init__(self, event_system=None, engine=None):
         super().__init__("voxel_collision")
@@ -45,6 +46,24 @@ class VoxelCollisionSystem(System):
             return float(self.engine._last_delta_time)
         return 1.0 / 60.0
 
+    def _body_blocked(self, chunk_manager, x: float, y: float, z: float) -> bool:
+        r = self.PLAYER_RADIUS
+        samples_y = (
+            y + 0.2,
+            y + self.PLAYER_HEIGHT * 0.5,
+            y + self.PLAYER_HEIGHT - 0.2,
+        )
+        for body_y in samples_y:
+            for wx, wy, wz in (
+                (x + r, body_y, z),
+                (x - r, body_y, z),
+                (x, body_y, z + r),
+                (x, body_y, z - r),
+            ):
+                if is_solid_at_world(chunk_manager, wx, wy, wz):
+                    return True
+        return False
+
     def _process_entities(self, entities):
         cm = getattr(self.engine, "chunk_manager", None) if self.engine else None
         if cm is None:
@@ -62,6 +81,7 @@ class VoxelCollisionSystem(System):
             if not pos:
                 continue
 
+            prev = self._last_pos.get(entity.name, (pos.x, pos.y, pos.z))
             on_ground = self._on_ground.get(entity.name, False)
 
             if input_state.get("SPACE") or input_state.get("JUMP"):
@@ -72,42 +92,50 @@ class VoxelCollisionSystem(System):
             if not on_ground:
                 pos.y -= self.GRAVITY * dt
 
-            if on_ground and feet_on_ground(cm, pos.x, pos.y, pos.z):
+            ground_y = find_ground_height(
+                cm, pos.x, pos.y, pos.z, self.PLAYER_RADIUS
+            )
+            if ground_y is not None and pos.y <= ground_y:
+                pos.y = ground_y
+                on_ground = True
+            elif on_ground and feet_on_ground(cm, pos.x, pos.y, pos.z):
                 pass
             else:
-                ground_y = find_ground_height(
-                    cm, pos.x, pos.y, pos.z, self.PLAYER_RADIUS
-                )
-                if ground_y is not None and pos.y <= ground_y:
+                on_ground = False
+
+            if (pos.x, pos.z) != (prev[0], prev[2]):
+                self._resolve_horizontal(cm, pos, prev)
+
+            self._push_out_of_solids(cm, pos, on_ground, ground_y)
+
+            if pos.y < self.MIN_WORLD_Y:
+                if ground_y is not None:
                     pos.y = ground_y
                     on_ground = True
-                elif not feet_on_ground(cm, pos.x, pos.y, pos.z):
+                else:
+                    pos.y = 8.0
+                    pos.x, pos.z = prev[0], prev[2]
                     on_ground = False
 
-            current = (pos.x, pos.y, pos.z)
-            if current != self._last_pos.get(entity.name):
-                self._resolve_horizontal(cm, pos)
-                self._last_pos[entity.name] = current
-
-            head_y = pos.y + self.PLAYER_HEIGHT
-            if is_solid_at_world(cm, pos.x, head_y, pos.z):
-                pos.y -= 0.1
-
             self._on_ground[entity.name] = on_ground
+            self._last_pos[entity.name] = (pos.x, pos.y, pos.z)
 
-    def _resolve_horizontal(self, chunk_manager, pos):
-        """Block horizontal movement into solid voxels at body height."""
-        body_y = pos.y + self.PLAYER_HEIGHT * 0.5
-        r = self.PLAYER_RADIUS
-        checks = (
-            (pos.x + r, body_y, pos.z),
-            (pos.x - r, body_y, pos.z),
-            (pos.x, body_y, pos.z + r),
-            (pos.x, body_y, pos.z - r),
-        )
-        for wx, wy, wz in checks:
-            if is_solid_at_world(chunk_manager, wx, wy, wz):
-                if abs(wx - pos.x) > abs(wz - pos.z):
-                    pos.x -= 0.05 if wx > pos.x else -0.05
-                else:
-                    pos.z -= 0.05 if wz > pos.z else -0.05
+    def _resolve_horizontal(self, chunk_manager, pos, prev):
+        """Revert axis movement that entered a solid block."""
+        if self._body_blocked(chunk_manager, pos.x, pos.y, pos.z):
+            if not self._body_blocked(chunk_manager, prev[0], pos.y, pos.z):
+                pos.x = prev[0]
+            elif not self._body_blocked(chunk_manager, pos.x, pos.y, prev[2]):
+                pos.z = prev[2]
+            else:
+                pos.x, pos.z = prev[0], prev[2]
+
+    def _push_out_of_solids(self, chunk_manager, pos, on_ground: bool, ground_y: float | None):
+        """Push the player up if clipped into terrain after landing (not while falling)."""
+        if not on_ground:
+            if ground_y is None or pos.y > ground_y + 0.25:
+                return
+        for _ in range(8):
+            if not self._body_blocked(chunk_manager, pos.x, pos.y, pos.z):
+                break
+            pos.y += 0.15

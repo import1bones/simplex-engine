@@ -51,6 +51,15 @@ class ChunkStreamingSystem(System):
         else:
             cy = math.floor(pos.y / sy)
 
+        raw_cx = math.floor(pos.x / sx)
+        raw_cz = math.floor(pos.z / sz)
+        raw_center = (raw_cx, cy, raw_cz)
+
+        # Always preload around the player's actual chunk so movement never outruns terrain.
+        cm.preload_area(
+            raw_center, radius=self.radius, horizontal_only=self.horizontal_only
+        )
+
         cx = self._stable_chunk_index(pos.x, sx, 0)
         cz = self._stable_chunk_index(pos.z, sz, 2)
         center = (cx, cy, cz)
@@ -59,7 +68,7 @@ class ChunkStreamingSystem(System):
             return
 
         self._last_center = center
-        cm.ensure_area_loaded(
+        cm.unload_outside_area(
             center, radius=self.radius, horizontal_only=self.horizontal_only
         )
         log(
